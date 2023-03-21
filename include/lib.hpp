@@ -92,12 +92,38 @@ namespace sadhbhcraft::orderbook
         return x.price();
     }
 
+    template<Side MySide>
+    struct PriceLevelCompare
+    {
+        template<typename A, typename B>
+        bool operator()(const A &a, const B &b)
+        {
+            if constexpr (MySide == Side::Buy)
+            {
+                return price_of(b) < price_of(a);
+            }
+            else
+            {
+                return price_of(a) < price_of(b);
+            }
+        }
+    };
+
+    template<typename T>
+    concept OrderBookSideConcept =
+        requires(T &x) {
+            { x.add_order(std::declval<Order&>()) } -> std::convertible_to<void>;
+            { x.side() } -> std::convertible_to<Side>; // C++20 doesn't support '-> Side'
+    };
+
+    template<Side MySide>
     class OrderBookSide
     {
     public:
+
         void add_order(Order &order) { do_add_order(order); }
 
-        virtual Side side() const = 0;
+        constexpr Side side() const { return MySide; }
 
         auto begin() const { return m_levels.begin(); }
         auto end() const { return m_levels.end(); }
@@ -111,8 +137,10 @@ namespace sadhbhcraft::orderbook
     protected:
         std::deque<OrderPriceLevel> m_levels;
         
-        // NOTE: you cannot have virtual function with auto return value
-        virtual std::deque<OrderPriceLevel>::iterator find_or_get_insert_iterator(int price) = 0;
+        auto find_or_get_insert_iterator(int price)
+        {
+            return std::lower_bound(m_levels.begin(), m_levels.end(), price, PriceLevelCompare<MySide>());
+        }
         
         // NOTE: If we use find_or_get_insert_iterator() before its declaration we'll get this error:
         // error: use of 'auto sadhbhcraft::orderbook::OrderBookSide::find_or_get_insert_iterator(int)' before deduction of 'auto'
@@ -124,34 +152,6 @@ namespace sadhbhcraft::orderbook
                 level_iterator = m_levels.insert(level_iterator, OrderPriceLevel(price_of(order)));
             }
             level_iterator->add_order(order);
-        }
-    };
-
-    class OrderBookBidSide : public OrderBookSide
-    {
-    public:
-        Side side() const override { return Side::Buy; }
-
-    protected:
-        std::deque<OrderPriceLevel>::iterator find_or_get_insert_iterator(int price) override
-        {
-            return std::lower_bound(m_levels.begin(), m_levels.end(), price, [this](auto a, auto b){
-                return price_of(b) < price_of(a);
-            });
-        }
-    };
-
-    class OrderBookAskSide : public OrderBookSide
-    {
-    public:
-        Side side() const override { return Side::Sell; }
-
-    protected:
-        std::deque<OrderPriceLevel>::iterator find_or_get_insert_iterator(int price) override
-        {
-            return std::lower_bound(m_levels.begin(), m_levels.end(), price, [this](auto a, auto b){
-                return price_of(a) < price_of(b);
-            });
         }
     };
 
@@ -174,10 +174,11 @@ namespace sadhbhcraft::orderbook
         const auto &ask() const { return m_ask; }
 
     private:
-        OrderBookBidSide m_bid;
-        OrderBookAskSide m_ask;
+        OrderBookSide<Side::Buy> m_bid;
+        OrderBookSide<Side::Sell> m_ask;
 
-        void do_accept_order(Order &order, OrderBookSide &side)
+        template<OrderBookSideConcept SideType>
+        void do_accept_order(Order &order, SideType &side)
         {
             // ... now we can write more code handling order
             // and we won't be repeating that code
