@@ -95,12 +95,9 @@ namespace sadhbhcraft::orderbook
     class OrderBookSide
     {
     public:
-        OrderBookSide(Side side): m_side(side)
-        {}
-
         void add_order(Order &order) { do_add_order(order); }
 
-        Side side() const { return m_side ;}
+        virtual Side side() const = 0;
 
         auto begin() const { return m_levels.begin(); }
         auto end() const { return m_levels.end(); }
@@ -111,16 +108,11 @@ namespace sadhbhcraft::orderbook
         size_t size() const { return m_levels.size(); }
         bool empty() const { return m_levels.empty(); }
 
-    private:
+    protected:
         std::deque<OrderPriceLevel> m_levels;
-        Side m_side;
         
-        auto find_or_get_insert_iterator(int price)
-        {
-            return std::lower_bound(m_levels.begin(), m_levels.end(), price, [this](auto a, auto b){
-                return (m_side == Side::Buy) ? price_of(b) < price_of(a) : price_of(a) < price_of(b);
-            });
-        }
+        // NOTE: you cannot have virtual function with auto return value
+        virtual std::deque<OrderPriceLevel>::iterator find_or_get_insert_iterator(int price) = 0;
         
         // NOTE: If we use find_or_get_insert_iterator() before its declaration we'll get this error:
         // error: use of 'auto sadhbhcraft::orderbook::OrderBookSide::find_or_get_insert_iterator(int)' before deduction of 'auto'
@@ -135,21 +127,46 @@ namespace sadhbhcraft::orderbook
         }
     };
 
+    class OrderBookBidSide : public OrderBookSide
+    {
+    public:
+        Side side() const override { return Side::Buy; }
+
+    protected:
+        std::deque<OrderPriceLevel>::iterator find_or_get_insert_iterator(int price) override
+        {
+            return std::lower_bound(m_levels.begin(), m_levels.end(), price, [this](auto a, auto b){
+                return price_of(b) < price_of(a);
+            });
+        }
+    };
+
+    class OrderBookAskSide : public OrderBookSide
+    {
+    public:
+        Side side() const override { return Side::Sell; }
+
+    protected:
+        std::deque<OrderPriceLevel>::iterator find_or_get_insert_iterator(int price) override
+        {
+            return std::lower_bound(m_levels.begin(), m_levels.end(), price, [this](auto a, auto b){
+                return price_of(a) < price_of(b);
+            });
+        }
+    };
+
     class OrderBook
     {
     public:
-        OrderBook(): m_bid(Side::Buy), m_ask(Side::Sell)
-        {}
-
         void accept_order(Order &order)
         {
             if (order.side == Side::Buy)
             {
-                m_bid.add_order(order);
+                do_accept_order(order, m_bid);
             }
             else
             {
-                m_ask.add_order(order);
+                do_accept_order(order, m_ask);
             }
         }
 
@@ -157,8 +174,16 @@ namespace sadhbhcraft::orderbook
         const auto &ask() const { return m_ask; }
 
     private:
-        OrderBookSide m_bid;
-        OrderBookSide m_ask;
+        OrderBookBidSide m_bid;
+        OrderBookAskSide m_ask;
+
+        void do_accept_order(Order &order, OrderBookSide &side)
+        {
+            // ... now we can write more code handling order
+            // and we won't be repeating that code
+            side.add_order(order);
+        }
+
     };
 
 } // end of namespace sadhbhcraft::orderbook
