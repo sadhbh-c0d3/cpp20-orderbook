@@ -41,65 +41,6 @@ namespace sadhbhcraft::orderbook
             { x.side() } -> std::convertible_to<Side>; // C++20 doesn't support '-> Side'
         };
 
-    struct Instrument
-    {
-        std::string symbol;
-    };
-
-    struct Market
-    {
-        Instrument &main;
-        Instrument &traded;
-    };
-
-    struct Order
-    {
-        typedef int PriceType;
-        typedef int QuantityType;
-
-        Market &market;
-        Side side;
-        OrderType order_type;
-        int price;
-        int quantity;
-    };
-
-    struct OrderQuantity
-    {
-        OrderQuantity(Order &order): order(order)
-        {}
-
-        Order &order;
-        int quantity;
-    };
-
-    class OrderPriceLevel
-    {
-    public:
-        OrderPriceLevel(int price): m_price(price)
-        {}
-
-        void add_order(Order &order)
-        {
-            m_orders.push_back(order);
-        }
-
-        int price() const { return m_price; }
-
-        auto begin() const { return m_orders.begin(); }
-        auto end() const { return m_orders.end(); }
-
-        auto &first() { return m_orders.front(); }
-        const auto &first() const { return m_orders.front(); }
-
-        size_t size() const { return m_orders.size(); }
-        bool empty() const { return m_orders.empty(); }
-
-    private:
-        std::deque<OrderQuantity> m_orders;
-        int m_price;
-    };
-
     template<typename T, NumericType = int>
     struct PriceTrait
     {
@@ -108,19 +49,13 @@ namespace sadhbhcraft::orderbook
     template<NumericType PriceType>
     struct PriceTrait<PriceType, PriceType>
     {
-        static PriceType price(const PriceType &p) { return p; }
+        static auto price(const PriceType &p) { return p; }
     };
 
-    template<NumericType PriceType>
-    struct PriceTrait<Order, PriceType>
+    template<OrderConcept OrderType>
+    struct PriceTrait<OrderType, typename OrderType::PriceType>
     {
-        static PriceType price(const Order &o) { return o.price; }
-    };
-
-    template<NumericType PriceType>
-    struct PriceTrait<OrderPriceLevel, PriceType>
-    {
-        static PriceType price(const OrderPriceLevel &opl) { return opl.price(); }
+        static auto price(const OrderType &o) { return o.price; }
     };
 
     template<typename T, NumericType PriceType=int>
@@ -146,7 +81,82 @@ namespace sadhbhcraft::orderbook
         }
     };
 
-    template<Side MySide, OrderConcept _OrderType = Order>
+
+    struct Instrument
+    {
+        std::string symbol;
+    };
+
+    struct Market
+    {
+        Instrument &main;
+        Instrument &traded;
+    };
+
+    template<NumericType _PriceType = int, NumericType _QuantityType = int>
+    struct Order
+    {
+        typedef _PriceType PriceType;
+        typedef _QuantityType QuantityType;
+
+        Market &market;
+        Side side;
+        OrderType order_type;
+        PriceType price;
+        QuantityType quantity;
+    };
+
+    template<OrderConcept _OrderType>
+    struct OrderQuantity
+    {
+        typedef _OrderType OrderType;
+        typedef typename _OrderType::QuantityType QuantityType;
+
+        OrderQuantity(OrderType &order): order(order)
+        {}
+
+        OrderType &order;
+        QuantityType quantity;
+    };
+
+    template<OrderConcept _OrderType>
+    class OrderPriceLevel
+    {
+    public:
+        typedef _OrderType OrderType;
+        typedef typename _OrderType::PriceType PriceType;
+
+        OrderPriceLevel(PriceType price): m_price(price)
+        {}
+
+        void add_order(OrderType &order)
+        {
+            m_orders.emplace_back(order);
+        }
+
+        auto price() const { return m_price; }
+
+        auto begin() const { return m_orders.begin(); }
+        auto end() const { return m_orders.end(); }
+
+        auto &first() { return m_orders.front(); }
+        const auto &first() const { return m_orders.front(); }
+
+        size_t size() const { return m_orders.size(); }
+        bool empty() const { return m_orders.empty(); }
+
+    private:
+        std::deque<OrderQuantity<OrderType>> m_orders;
+        PriceType m_price;
+    };
+
+    template<OrderConcept OrderType>
+    struct PriceTrait<OrderPriceLevel<OrderType>, typename OrderType::PriceType>
+    {
+        static auto price(const OrderPriceLevel<OrderType> &opl) { return opl.price(); }
+    };
+
+    template<Side MySide, OrderConcept _OrderType>
     class OrderBookSide
     {
     public:
@@ -166,27 +176,25 @@ namespace sadhbhcraft::orderbook
         bool empty() const { return m_levels.empty(); }
 
     protected:
-        std::deque<OrderPriceLevel> m_levels;
+        std::deque<OrderPriceLevel<OrderType>> m_levels;
         
         auto find_or_get_insert_iterator(OrderType::PriceType price)
         {
             return std::lower_bound(m_levels.begin(), m_levels.end(), price, PriceLevelCompare<MySide>());
         }
         
-        // NOTE: If we use find_or_get_insert_iterator() before its declaration we'll get this error:
-        // error: use of 'auto sadhbhcraft::orderbook::OrderBookSide::find_or_get_insert_iterator(int)' before deduction of 'auto'
         void do_add_order(OrderType &order)
         {
             auto level_iterator = find_or_get_insert_iterator(price_of(order));
             if (level_iterator == m_levels.end() || level_iterator->price() != order.price)
             {
-                level_iterator = m_levels.insert(level_iterator, OrderPriceLevel(price_of(order)));
+                level_iterator = m_levels.emplace(level_iterator, price_of(order));
             }
             level_iterator->add_order(order);
         }
     };
 
-    template<OrderConcept _OrderType = Order>
+    template<OrderConcept _OrderType = Order<>>
     class OrderBook
     {
     public:
