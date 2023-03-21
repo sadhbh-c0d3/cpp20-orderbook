@@ -61,13 +61,13 @@ namespace sadhbhcraft::orderbook
             m_orders.push_back(order);
         }
 
-        const int price() const { return m_price; }
+        int price() const { return m_price; }
 
-        std::deque<OrderQuantity>::const_iterator begin() const { return m_orders.begin(); }
-        std::deque<OrderQuantity>::const_iterator end() const { return m_orders.end(); }
+        auto begin() const { return m_orders.begin(); }
+        auto end() const { return m_orders.end(); }
 
-        OrderQuantity &first() { return m_orders.front(); }
-        const OrderQuantity &first() const { return m_orders.front(); }
+        auto &first() { return m_orders.front(); }
+        const auto &first() const { return m_orders.front(); }
 
         size_t size() const { return m_orders.size(); }
         bool empty() const { return m_orders.empty(); }
@@ -77,29 +77,20 @@ namespace sadhbhcraft::orderbook
         int m_price;
     };
 
-    struct OrderPriceLevelCompare
+    inline int price_of(int x)
     {
-        OrderPriceLevelCompare(Side side): m_side(side){}
+        return x;
+    }
 
-        bool operator()(const OrderPriceLevel &a, const OrderPriceLevel &b) const
-        {
-            return (m_side == Side::Buy) ? b.price() < a.price() : a.price() < b.price();
-        }
+    inline int price_of(const Order &x)
+    {
+        return x.price;
+    }
 
-        bool operator()(int price, const OrderPriceLevel &b) const
-        {
-            return (m_side == Side::Buy) ? b.price() < price : price < b.price();
-        }
-
-        bool operator()(const OrderPriceLevel &a, int price) const
-        {
-            return (m_side == Side::Buy) ? price < a.price() : a.price() < price;
-        }
-
-    private:
-        Side m_side;
-    };
-
+    inline int price_of(const OrderPriceLevel &x)
+    {
+        return x.price();
+    }
 
     class OrderBookSide
     {
@@ -107,23 +98,15 @@ namespace sadhbhcraft::orderbook
         OrderBookSide(Side side): m_side(side)
         {}
 
-        void add_order(Order &order)
-        {
-            std::deque<OrderPriceLevel>::iterator level_iterator = find_or_get_insert_iterator(order.price);
-            if (level_iterator == m_levels.end() || level_iterator->price() != order.price)
-            {
-                level_iterator = m_levels.insert(level_iterator, OrderPriceLevel(order.price));
-            }
-            level_iterator->add_order(order);
-        }
+        void add_order(Order &order) { do_add_order(order); }
 
         Side side() const { return m_side ;}
 
-        std::deque<OrderPriceLevel>::const_iterator begin() const { return m_levels.begin(); }
-        std::deque<OrderPriceLevel>::const_iterator end() const { return m_levels.end(); }
+        auto begin() const { return m_levels.begin(); }
+        auto end() const { return m_levels.end(); }
 
-        OrderPriceLevel &top() { return m_levels.front(); }
-        const OrderPriceLevel &top() const { return m_levels.front(); }
+        auto &top() { return m_levels.front(); }
+        const auto &top() const { return m_levels.front(); }
 
         size_t size() const { return m_levels.size(); }
         bool empty() const { return m_levels.empty(); }
@@ -131,10 +114,24 @@ namespace sadhbhcraft::orderbook
     private:
         std::deque<OrderPriceLevel> m_levels;
         Side m_side;
-
-        std::deque<OrderPriceLevel>::iterator find_or_get_insert_iterator(int price)
+        
+        auto find_or_get_insert_iterator(int price)
         {
-            return std::lower_bound(m_levels.begin(), m_levels.end(), price, OrderPriceLevelCompare(m_side));
+            return std::lower_bound(m_levels.begin(), m_levels.end(), price, [this](auto a, auto b){
+                return (m_side == Side::Buy) ? price_of(b) < price_of(a) : price_of(a) < price_of(b);
+            });
+        }
+        
+        // NOTE: If we use find_or_get_insert_iterator() before its declaration we'll get this error:
+        // error: use of 'auto sadhbhcraft::orderbook::OrderBookSide::find_or_get_insert_iterator(int)' before deduction of 'auto'
+        void do_add_order(Order &order)
+        {
+            auto level_iterator = find_or_get_insert_iterator(price_of(order));
+            if (level_iterator == m_levels.end() || level_iterator->price() != order.price)
+            {
+                level_iterator = m_levels.insert(level_iterator, OrderPriceLevel(price_of(order)));
+            }
+            level_iterator->add_order(order);
         }
     };
 
@@ -156,8 +153,8 @@ namespace sadhbhcraft::orderbook
             }
         }
 
-        const OrderBookSide &bid() const { return m_bid; }
-        const OrderBookSide &ask() const { return m_ask; }
+        const auto &bid() const { return m_bid; }
+        const auto &ask() const { return m_ask; }
 
     private:
         OrderBookSide m_bid;
