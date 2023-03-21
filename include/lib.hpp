@@ -21,6 +21,26 @@ namespace sadhbhcraft::orderbook
         FOC
     };
 
+    template <typename T>
+    concept NumericType = std::is_arithmetic<T>::value;
+
+    template<typename T>
+    concept OrderConcept =
+        requires(T &x) {
+            NumericType<typename T::PriceType>;
+            NumericType<typename T::QuantityType>;
+            { x.price } -> std::convertible_to<typename T::PriceType>;
+            { x.quantity } -> std::convertible_to<typename T::QuantityType>;
+        };
+
+    template<typename T>
+    concept OrderBookSideConcept =
+        requires(T &x) {
+            OrderConcept<typename T::OrderType>;
+            { x.add_order(std::declval<typename T::OrderType&>()) } -> std::convertible_to<void>;
+            { x.side() } -> std::convertible_to<Side>; // C++20 doesn't support '-> Side'
+        };
+
     struct Instrument
     {
         std::string symbol;
@@ -34,6 +54,9 @@ namespace sadhbhcraft::orderbook
 
     struct Order
     {
+        typedef int PriceType;
+        typedef int QuantityType;
+
         Market &market;
         Side side;
         OrderType order_type;
@@ -77,19 +100,33 @@ namespace sadhbhcraft::orderbook
         int m_price;
     };
 
-    inline int price_of(int x)
+    template<typename T, NumericType = int>
+    struct PriceTrait
     {
-        return x;
-    }
+    };
 
-    inline int price_of(const Order &x)
+    template<NumericType PriceType>
+    struct PriceTrait<PriceType, PriceType>
     {
-        return x.price;
-    }
+        static PriceType price(const PriceType &p) { return p; }
+    };
 
-    inline int price_of(const OrderPriceLevel &x)
+    template<NumericType PriceType>
+    struct PriceTrait<Order, PriceType>
     {
-        return x.price();
+        static PriceType price(const Order &o) { return o.price; }
+    };
+
+    template<NumericType PriceType>
+    struct PriceTrait<OrderPriceLevel, PriceType>
+    {
+        static PriceType price(const OrderPriceLevel &opl) { return opl.price(); }
+    };
+
+    template<typename T, NumericType PriceType=int>
+    PriceType price_of(const T &x)
+    {
+        return PriceTrait<T>::price(x);
     }
 
     template<Side MySide>
@@ -109,19 +146,13 @@ namespace sadhbhcraft::orderbook
         }
     };
 
-    template<typename T>
-    concept OrderBookSideConcept =
-        requires(T &x) {
-            { x.add_order(std::declval<Order&>()) } -> std::convertible_to<void>;
-            { x.side() } -> std::convertible_to<Side>; // C++20 doesn't support '-> Side'
-    };
-
-    template<Side MySide>
+    template<Side MySide, OrderConcept _OrderType = Order>
     class OrderBookSide
     {
     public:
+        typedef _OrderType OrderType;
 
-        void add_order(Order &order) { do_add_order(order); }
+        void add_order(OrderType &order) { do_add_order(order); }
 
         constexpr Side side() const { return MySide; }
 
@@ -137,14 +168,14 @@ namespace sadhbhcraft::orderbook
     protected:
         std::deque<OrderPriceLevel> m_levels;
         
-        auto find_or_get_insert_iterator(int price)
+        auto find_or_get_insert_iterator(OrderType::PriceType price)
         {
             return std::lower_bound(m_levels.begin(), m_levels.end(), price, PriceLevelCompare<MySide>());
         }
         
         // NOTE: If we use find_or_get_insert_iterator() before its declaration we'll get this error:
         // error: use of 'auto sadhbhcraft::orderbook::OrderBookSide::find_or_get_insert_iterator(int)' before deduction of 'auto'
-        void do_add_order(Order &order)
+        void do_add_order(OrderType &order)
         {
             auto level_iterator = find_or_get_insert_iterator(price_of(order));
             if (level_iterator == m_levels.end() || level_iterator->price() != order.price)
@@ -155,10 +186,13 @@ namespace sadhbhcraft::orderbook
         }
     };
 
+    template<OrderConcept _OrderType = Order>
     class OrderBook
     {
     public:
-        void accept_order(Order &order)
+        typedef _OrderType OrderType;
+
+        void accept_order(OrderType &order)
         {
             if (order.side == Side::Buy)
             {
@@ -174,11 +208,11 @@ namespace sadhbhcraft::orderbook
         const auto &ask() const { return m_ask; }
 
     private:
-        OrderBookSide<Side::Buy> m_bid;
-        OrderBookSide<Side::Sell> m_ask;
+        OrderBookSide<Side::Buy, OrderType> m_bid;
+        OrderBookSide<Side::Sell, OrderType> m_ask;
 
         template<OrderBookSideConcept SideType>
-        void do_accept_order(Order &order, SideType &side)
+        void do_accept_order(OrderType &order, SideType &side)
         {
             // ... now we can write more code handling order
             // and we won't be repeating that code
