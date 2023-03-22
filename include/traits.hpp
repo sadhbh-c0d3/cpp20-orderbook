@@ -28,14 +28,14 @@ namespace sadhbhcraft::orderbook
         static auto quantity(const OrderType &o) { return o.quantity; }
     };
 
-    template<typename T, NumericType PriceType=int>
-    PriceType price_of(const T &x)
+    template<typename T>
+    auto price_of(const T &x)
     {
         return PriceTrait<T>::price(x);
     }
 
-    template<typename T, NumericType QuantityType=int>
-    QuantityType quantity_of(const T &x)
+    template<typename T>
+    auto quantity_of(const T &x)
     {
         return QuantityTrait<T>::quantity(x);
     }
