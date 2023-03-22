@@ -8,7 +8,7 @@ int main(int argc, const char** argv)
 {
     namespace scob = sadhbhcraft::orderbook;
 
-    scob::OrderBook<scob::Order<>, std::deque, std::vector> book;
+    scob::OrderBook book;
 
     // 1. When book is empty we expect an order to be added to correct side at
     // new level

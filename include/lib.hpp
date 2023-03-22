@@ -4,6 +4,7 @@
 #include<string>
 #include<vector>
 #include<deque>
+#include<map>
 #include<algorithm>
 
 namespace sadhbhcraft::orderbook
@@ -197,7 +198,7 @@ namespace sadhbhcraft::orderbook
     template<Side MySide, OrderConcept _OrderType,
         template <typename> class _StackType,
         template <typename> class _QueueType>
-    class OrderBookSide
+    class StackOfOrderQueuesBookSide
     {
     public:
         typedef _OrderType OrderType;
@@ -232,18 +233,22 @@ namespace sadhbhcraft::orderbook
             level_iterator->add_order(order);
         }
     };
+    
+    template<template <typename> class StackType = std::deque, template <typename> class QueueType = std::deque>
+    struct StackOfOrderQueuesBookSidePolicy
+    {
+        template<Side MySide, OrderConcept OrderType>
+        using OrderBookSideType = StackOfOrderQueuesBookSide<MySide, OrderType, StackType, QueueType>;
+    };
 
-    template<OrderConcept _OrderType = Order<>,
-        template <typename> class _StackType = std::deque,
-        template <typename> class _QueueType = std::deque>
+    template<OrderConcept _OrderType = Order<>, typename OrderBookSidePolicy = StackOfOrderQueuesBookSidePolicy<>>
     class OrderBook
     {
     public:
         typedef _OrderType OrderType;
-        template<typename T>
-        using StackType = _StackType<T>;
-        template<typename T>
-        using QueueType = _QueueType<T>;
+        template<Side MySide, OrderConcept OrderType>
+        using OrderBookSideType = typename OrderBookSidePolicy::OrderBookSideType<MySide, OrderType>;
+    
 
         void accept_order(OrderType &order)
         {
@@ -261,8 +266,8 @@ namespace sadhbhcraft::orderbook
         const auto &ask() const { return m_ask; }
 
     private:
-        OrderBookSide<Side::Buy, OrderType, StackType, QueueType> m_bid;
-        OrderBookSide<Side::Sell, OrderType, StackType, QueueType> m_ask;
+        OrderBookSideType<Side::Buy, OrderType> m_bid;
+        OrderBookSideType<Side::Sell, OrderType> m_ask;
 
         template<OrderBookSideConcept SideType>
         void do_accept_order(OrderType &order, SideType &side)
