@@ -119,12 +119,15 @@ namespace sadhbhcraft::orderbook
         QuantityType quantity;
     };
 
-    template<OrderConcept _OrderType>
+
+    template<OrderConcept _OrderType, template <typename> class _QueueType>
     class OrderPriceLevel
     {
     public:
         typedef _OrderType OrderType;
         typedef typename _OrderType::PriceType PriceType;
+        template<typename T>
+        using QueueType = _QueueType<T>;
 
         OrderPriceLevel(PriceType price): m_price(price)
         {}
@@ -146,21 +149,27 @@ namespace sadhbhcraft::orderbook
         bool empty() const { return m_orders.empty(); }
 
     private:
-        std::deque<OrderQuantity<OrderType>> m_orders;
+        QueueType<OrderQuantity<OrderType>> m_orders;
         PriceType m_price;
     };
 
-    template<OrderConcept OrderType>
-    struct PriceTrait<OrderPriceLevel<OrderType>, typename OrderType::PriceType>
+    template<OrderConcept OrderType, template <typename> class QueueType>
+    struct PriceTrait<OrderPriceLevel<OrderType, QueueType>, typename OrderType::PriceType>
     {
-        static auto price(const OrderPriceLevel<OrderType> &opl) { return opl.price(); }
+        static auto price(const OrderPriceLevel<OrderType, QueueType> &opl) { return opl.price(); }
     };
 
-    template<Side MySide, OrderConcept _OrderType>
+    template<Side MySide, OrderConcept _OrderType,
+        template <typename> class _StackType,
+        template <typename> class _QueueType>
     class OrderBookSide
     {
     public:
         typedef _OrderType OrderType;
+        template<typename T>
+        using StackType = _StackType<T>;
+        template<typename T>
+        using QueueType = _QueueType<T>;
 
         void add_order(OrderType &order) { do_add_order(order); }
 
@@ -176,7 +185,7 @@ namespace sadhbhcraft::orderbook
         bool empty() const { return m_levels.empty(); }
 
     protected:
-        std::deque<OrderPriceLevel<OrderType>> m_levels;
+        StackType<OrderPriceLevel<OrderType, QueueType>> m_levels;
         
         auto find_or_get_insert_iterator(OrderType::PriceType price)
         {
@@ -194,11 +203,17 @@ namespace sadhbhcraft::orderbook
         }
     };
 
-    template<OrderConcept _OrderType = Order<>>
+    template<OrderConcept _OrderType = Order<>,
+        template <typename> class _StackType = std::deque,
+        template <typename> class _QueueType = std::deque>
     class OrderBook
     {
     public:
         typedef _OrderType OrderType;
+        template<typename T>
+        using StackType = _StackType<T>;
+        template<typename T>
+        using QueueType = _QueueType<T>;
 
         void accept_order(OrderType &order)
         {
@@ -216,8 +231,8 @@ namespace sadhbhcraft::orderbook
         const auto &ask() const { return m_ask; }
 
     private:
-        OrderBookSide<Side::Buy, OrderType> m_bid;
-        OrderBookSide<Side::Sell, OrderType> m_ask;
+        OrderBookSide<Side::Buy, OrderType, StackType, QueueType> m_bid;
+        OrderBookSide<Side::Sell, OrderType, StackType, QueueType> m_ask;
 
         template<OrderBookSideConcept SideType>
         void do_accept_order(OrderType &order, SideType &side)
