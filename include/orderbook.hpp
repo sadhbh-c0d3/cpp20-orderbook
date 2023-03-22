@@ -33,11 +33,11 @@ namespace sadhbhcraft::orderbook
         {
             if (order.side == Side::Buy)
             {
-                do_accept_order(order, m_bid);
+                do_accept_order(order, m_ask, m_bid);
             }
             else
             {
-                do_accept_order(order, m_ask);
+                do_accept_order(order,m_bid, m_ask);
             }
         }
 
@@ -48,12 +48,18 @@ namespace sadhbhcraft::orderbook
         OrderBookSideType<Side::Buy, OrderType> m_bid;
         OrderBookSideType<Side::Sell, OrderType> m_ask;
 
-        template<OrderBookSideConcept SideType>
-        void do_accept_order(OrderType &order, SideType &side)
+        template <
+            OrderBookSideConcept MatchSideType,
+            OrderBookSideConcept AddSideType>
+        void do_accept_order(OrderType &order, MatchSideType &match_side, AddSideType &add_side)
         {
-            // ... now we can write more code handling order
-            // and we won't be repeating that code
-            side.add_order(order);
+            auto matched_quantity = match_side.match_order(order);
+            auto quantity_remaining = order.quantity - matched_quantity;
+
+            if (quantity_remaining && (order.order_type == sadhbhcraft::orderbook::OrderType::Limit))
+            {
+                add_side.add_order(order, quantity_remaining);
+            }
         }
     };
 

@@ -22,12 +22,21 @@ namespace sadhbhcraft::orderbook
             { x.quantity } -> std::convertible_to<typename T::QuantityType>;
         };
 
-    template<typename T>
+    template <typename T>
     concept OrderBookSideConcept =
         requires(T &x) {
             OrderConcept<typename T::OrderType>;
-            { x.add_order(std::declval<typename T::OrderType&>()) } -> std::convertible_to<void>;
-            { x.side() } -> std::convertible_to<Side>; // C++20 doesn't support '-> Side'
+            {
+                x.add_order(
+                    std::declval<typename T::OrderType &>(),
+                    std::declval<typename T::OrderType::QuantityType>())
+                } -> std::convertible_to<void>;
+            {
+                x.match_order(std::declval<typename T::OrderType &>())
+                } -> std::convertible_to<typename T::OrderType::QuantityType>;
+            {
+                x.side()
+                } -> std::convertible_to<Side>; // C++20 doesn't support '-> Side'
         };
 
 }; // end of namespace
