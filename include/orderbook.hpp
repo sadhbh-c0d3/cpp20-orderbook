@@ -2,6 +2,7 @@
 #define INCLUDED_ORDERBOOK_HPP
 
 #include "enums.hpp"
+#include "concepts.hpp"
 #include "pricelevelstack.hpp"
 
 
@@ -20,7 +21,7 @@ namespace sadhbhcraft::orderbook
     };
 
 
-    template<OrderConcept _OrderType = Order<>, typename OrderBookSidePolicy = StackOfOrderQueuesBookSidePolicy<>>
+    template<OrderConcept _OrderType = Order<>, typename OrderBookSidePolicy = PriceLevelStackBookSidePolicy<>>
     class OrderBook
     {
     public:

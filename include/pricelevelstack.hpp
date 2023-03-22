@@ -23,7 +23,7 @@ namespace sadhbhcraft::orderbook
         OrderQuantity& operator = (OrderQuantity &&x)
         {
             // Tell C++ to "steal" `order` pointer from `x`. This will actually copy that pointer.
-            // This is legal, because `&order` points to some stable memory block is scope far outside.
+            // This is legal, because `&order` points to some stable memory block in scope far outside.
             // Remember that `OrderType &` is stored as `OrderType *`, and we can simply copy & assign it.
             // The only reason why we can't assign it using `=` is C++ rules, which protect `&` references.
             // The rules exist generally to protect expiring objects to be referenced, and all fields are
@@ -147,7 +147,7 @@ namespace sadhbhcraft::orderbook
     template<Side MySide, OrderConcept _OrderType,
         template <typename> class _StackType,
         template <typename> class _QueueType>
-    class StackOfOrderQueuesBookSide
+    class PriceLevelStack
     {
     public:
         typedef _OrderType OrderType;
@@ -239,7 +239,7 @@ namespace sadhbhcraft::orderbook
         {
             auto level_iterator = find_or_get_insert_iterator(price_of(order));
 
-            if (level_iterator == m_levels.end() || level_iterator->price() != order.price)
+            if (level_iterator == m_levels.end() || price_of(*level_iterator) != price_of(order))
             {
                 level_iterator = m_levels.emplace(level_iterator, price_of(order));
             }
@@ -248,10 +248,10 @@ namespace sadhbhcraft::orderbook
     };
 
     template<template <typename> class StackType = std::deque, template <typename> class QueueType = std::deque>
-    struct StackOfOrderQueuesBookSidePolicy
+    struct PriceLevelStackBookSidePolicy
     {
         template<Side MySide, OrderConcept OrderType>
-        using OrderBookSideType = StackOfOrderQueuesBookSide<MySide, OrderType, StackType, QueueType>;
+        using OrderBookSideType = PriceLevelStack<MySide, OrderType, StackType, QueueType>;
     };
 
 } // end of namespace sadhbhcraft::orderbook
