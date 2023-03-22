@@ -8,17 +8,12 @@ int main(int argc, const char** argv)
 {
     namespace scob = sadhbhcraft::orderbook;
 
-    scob::Instrument i1{.symbol = "AAA"};
-    scob::Instrument i2{.symbol = "ABB"};
-
-    scob::Market m1{.main=i1, .traded=i2};
-    scob::OrderBook book;
+    scob::OrderBook<scob::Order<>, std::deque, std::vector> book;
 
     // 1. When book is empty we expect an order to be added to correct side at
     // new level
     // Add first order
     scob::Order o1{
-        .market = m1,
         .side = scob::Side::Buy,
         .order_type = scob::OrderType::Limit,
         .price = 100,
@@ -36,7 +31,6 @@ int main(int argc, const char** argv)
     // will join at the end of the queue
     // Add second order, same price
     scob::Order o2{
-        .market = m1,
         .side = scob::Side::Buy,
         .order_type = scob::OrderType::Limit,
         .price = 100,
@@ -55,7 +49,6 @@ int main(int argc, const char** argv)
     // to a new deeper level
     // Add third order, lower price
     scob::Order o3{
-        .market = m1,
         .side = scob::Side::Buy,
         .order_type = scob::OrderType::Limit,
         .price = 90,
@@ -78,7 +71,6 @@ int main(int argc, const char** argv)
     // levels will be added to a new level in between
     // Add fourth order, middle price
     scob::Order o4{
-        .market = m1,
         .side = scob::Side::Buy,
         .order_type = scob::OrderType::Limit,
         .price = 95,
@@ -104,7 +96,6 @@ int main(int argc, const char** argv)
     // added to new level at the top of the book
     // Add 5th order, best bid
     scob::Order o5{
-        .market = m1,
         .side = scob::Side::Buy,
         .order_type = scob::OrderType::Limit,
         .price = 105,
@@ -115,7 +106,6 @@ int main(int argc, const char** argv)
     // added to ask side, and bid side won't be altered
     // Add 6th order, best ask
     scob::Order o6{
-        .market = m1,
         .side = scob::Side::Sell,
         .order_type = scob::OrderType::Limit,
         .price = 120,
@@ -154,7 +144,6 @@ int main(int argc, const char** argv)
     // ask side has opposite sorting direction than bid side
     // Add 7th order, 2nd level ask
     scob::Order o7{
-        .market = m1,
         .side = scob::Side::Sell,
         .order_type = scob::OrderType::Limit,
         .price = 125,
