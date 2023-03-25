@@ -80,7 +80,10 @@ namespace sadhbhcraft::orderbook
 
             for (; quantity && it != end; ++it)
             {
-                OrderQuantity<OrderType> executed{it->order(), std::min(quantity, it->quantity)};
+                // Quantity we should fill on this order
+                QuantityType quantity_to_fill = std::min(quantity, it->quantity);
+
+                OrderQuantity<OrderType> executed{it->order(), quantity_to_fill};
                 co_await execution_policy(executed);
 
                 quantity -= executed.quantity;
@@ -90,8 +93,18 @@ namespace sadhbhcraft::orderbook
                 
                 co_yield executed;
 
-                if (it->quantity)
+                // Check if we fully filled incomming order
+                if (!quantity)
                 {
+                    // Either there is no quantity left on the order,
+                    // or execution policy has trimmed the order.
+                    // DISCUSSION:
+                    // We could introduce new type for execution instead of using OrderQuantity
+                    // and perhaps have executed_quantity and cancelled_quantity there.
+                    if (!it->quantity || executed.quantity != quantity_to_fill)
+                    {
+                        ++it;
+                    }
                     break;
                 }
             }

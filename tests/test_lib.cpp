@@ -237,10 +237,6 @@ int main(int argc, const char** argv)
     assert(std::addressof(book.bid().top().first().order()) == std::addressof(o3));
     assert(quantity_of(book.bid().top().first()) == quantity_of(o3));
 
-    std::cout << "Tests OK." << std::endl;
-    return 0;
-    
-
     // 10. We send IOC at price 125 to swipe quantity of 10
     // with OrderSizeLimit of 5
     // At this stage we have orders:
@@ -259,17 +255,19 @@ int main(int argc, const char** argv)
     auto ex10 = book.accept_order<LimitType>(o10, {5});
     
     assert(ex10);
-    // Should execute (125, 4)
-    ex = ex10();
-    assert(quantity_of(ex) == 4);
-    assert(std::addressof(ex.order()) == std::addressof(o7));
     // Should execute (120, 5)
     ex = ex10();
     assert(quantity_of(ex) == 5);
     assert(std::addressof(ex.order()) == std::addressof(o6));
+    // Should execute (125, 4)
+    ex = ex10();
+    assert(quantity_of(ex) == 4);
+    assert(std::addressof(ex.order()) == std::addressof(o7));
     // No more executions
     assert(!ex10);
     // Ask should be clear, as we cancel anything that cannot be executed
     assert(book.ask().empty());
     
+    std::cout << "Tests OK." << std::endl;
+    return 0;
 }
