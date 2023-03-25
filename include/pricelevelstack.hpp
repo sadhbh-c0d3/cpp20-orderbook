@@ -26,8 +26,8 @@ namespace sadhbhcraft::orderbook
 
         // This class is fully copyable and assignable - it's essentially poco.
 
-        OrderType &order() noexcept { return order_ref; }
-        const OrderType &order() const noexcept { return order_ref; }
+        OrderType &order() noexcept { return *order_ref; }
+        const OrderType &order() const noexcept { return *order_ref; }
     
         QuantityType quantity;
         // ^ This can be remaining quantity if this instance lays on OrderPriceLevel, or
@@ -35,7 +35,7 @@ namespace sadhbhcraft::orderbook
         // The sole purpose of `OrderQuantity` structure is to bind `OrderType` with some quantity.
     
     private:
-        std::reference_wrapper<OrderType> order_ref;
+        OrderType *order_ref;
         // ^ We don't necessarily want to manage lifetime of the order, and raw
         // reference to something in the outside scope should be sufficient.
         // TODO: Add OrderPointerPolicy so that used can choose whether OrderBook
