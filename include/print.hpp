@@ -10,13 +10,9 @@
 namespace sadhbhcraft::orderbook
 {
     template<OrderLikeConcept OrderLikeType>
-    OrderLikeType &&print(OrderLikeType &&o, std::ostream &os = std::cerr)
+    void print(const OrderLikeType &o)
     {
-        os << "{ .price=" << price_of(std::forward<OrderLikeType>(o)) 
-           << ", .quantity=" << quantity_of(std::forward<OrderLikeType>(o)) << " }" 
-           << std::endl;
-
-        return std::forward<OrderLikeType>(o);
+        std::cerr << "{ .price=" << price_of(o) << ", .quantity=" << quantity_of(o) << " }" << std::endl;
     }
 
 } // end of namespace sadhbhcraft::orderbook
