@@ -21,7 +21,7 @@ namespace sadhbhcraft::orderbook
         typedef typename _OrderType::QuantityType QuantityType;
 
         OrderQuantity(OrderType &order, QuantityType quantity) noexcept
-            : order_ref(order), quantity(quantity)
+            : order_ref(&order), quantity(quantity)
         {}
 
         // This class is fully copyable and assignable - it's essentially poco.
