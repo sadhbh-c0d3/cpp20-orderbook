@@ -93,7 +93,7 @@ namespace sadhbhcraft::orderbook
                 // Execution policy will tell if order could be filled
                 // and resulting executed quantity will be adjusted
                 OrderQuantity<OrderType> executed{it->order(), quantity_to_fill};
-                co_await execution_policy(executed);
+                //co_await execution_policy(executed);
                 std::cout << "match() - executed --> ";
                 print(*it);
 
