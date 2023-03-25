@@ -25,4 +25,4 @@ TARGET_LINK_LIBRARIES(run_app)
 
 ENABLE_TESTING()
 ADD_TEST(AsyncTests bin/test_async)
-ADD_TEST(LibTests bin/run_tests)
+ADD_TEST(LibTests bin/test_lib)
