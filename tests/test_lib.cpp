@@ -179,9 +179,9 @@ int main(int argc, const char** argv)
     };
 
     auto ex8 = book.accept_order(o8);
+    assert(ex8);
 
 #if 0
-    assert(ex8);
     // Should execute (105, 2)
     auto ex = ex8();
     print(ex);
@@ -223,9 +223,9 @@ int main(int argc, const char** argv)
     };
     
     auto ex9 = book.accept_order(o9);
+    assert(ex9);
 
 #if 0
-    assert(ex9);
     // Should execute (100, 9)
     ex = ex9();
     print(ex);
