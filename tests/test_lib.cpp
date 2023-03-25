@@ -181,34 +181,32 @@ int main(int argc, const char** argv)
         .quantity = 8
     };
 
-    auto ex8 = book.accept_order_v(o8);
-    auto ex8it = ex8.begin();
-    auto ex8end = ex8.end();
+    auto ex8 = book.accept_order(o8);
+    assert(ex8);
 
     // Should execute (105, 2)
-    assert(ex8it != ex8end);
-    auto &ex = *(ex8it++);
-    assert(quantity_of(ex) == 2);
+    auto ex = ex8();
+    assert(scob::quantity_of(ex) == 2);
     assert(std::addressof(ex.order()) == std::addressof(o5));
     // Should execute (100, 5)
-    assert(ex8it != ex8end);
-    ex = *(ex8it++);
-    assert(quantity_of(ex) == 5);
+    assert(ex8);
+    ex = ex8();
+    assert(scob::quantity_of(ex) == 5);
     assert(std::addressof(ex.order()) == std::addressof(o1));
     // Should execute 1 from (100, 10)
-    assert(ex8it != ex8end);
-    ex = *(ex8it++);
-    assert(quantity_of(ex) == 1);
+    assert(ex8);
+    ex = ex8();
+    assert(scob::quantity_of(ex) == 1);
     assert(std::addressof(ex.order()) == std::addressof(o2));
     // No more executions
-    assert(ex8it == ex8end);
+    assert(!ex8);
 
     // Expect: 3-levels at Bid
     // Expect: 1-el in 1st level queue
     assert(book.bid().size() == 3);
     assert(book.bid().top().size() == 1);
     assert(std::addressof(book.bid().top().first().order()) == std::addressof(o2));
-    assert(quantity_of(book.bid().top().first()) == 9);
+    assert(scob::quantity_of(book.bid().top().first()) == 9);
 
 
 #if 0
@@ -231,12 +229,12 @@ int main(int argc, const char** argv)
     // Should execute (100, 9)
     ex = ex9();
     print(ex);
-    assert(quantity_of(ex) == 9);
+    assert(scob::quantity_of(ex) == 9);
     assert(std::addressof(ex.order()) == std::addressof(o2));
     // Should execute (95, 10)
     ex = ex9();
     print(ex);
-    assert(quantity_of(ex) == 10);
+    assert(scob::quantity_of(ex) == 10);
     assert(std::addressof(ex.order()) == std::addressof(o4));
     // No more executions
     assert(!ex9);
@@ -244,7 +242,7 @@ int main(int argc, const char** argv)
     assert(book.bid().size() == 1);
     assert(book.bid().top().size() == 1);
     assert(std::addressof(book.bid().top().first().order()) == std::addressof(o3));
-    assert(quantity_of(book.bid().top().first()) == quantity_of(o3));
+    assert(scob::quantity_of(book.bid().top().first()) == scob::quantity_of(o3));
     
 
     // 10. We send IOC at price 125 to swipe quantity of 10
@@ -268,12 +266,12 @@ int main(int argc, const char** argv)
     // Should execute (120, 5)
     ex = ex10();
     print(ex);
-    assert(quantity_of(ex) == 5);
+    assert(scob::quantity_of(ex) == 5);
     assert(std::addressof(ex.order()) == std::addressof(o6));
     // Should execute (125, 4)
     ex = ex10();
     print(ex);
-    //assert(quantity_of(ex) == 4);
+    //assert(scob::quantity_of(ex) == 4);
     assert(std::addressof(ex.order()) == std::addressof(o7));
     // No more executions
     assert(!ex10);
