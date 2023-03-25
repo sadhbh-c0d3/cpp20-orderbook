@@ -14,11 +14,15 @@ SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 SET(SOURCES 
   src/lib.cpp)
 
-ADD_EXECUTABLE(run_tests tests/test_lib.cpp ${SOURCES})
-TARGET_LINK_LIBRARIES(run_tests)
+ADD_EXECUTABLE(test_async tests/test_lib.cpp ${SOURCES})
+TARGET_LINK_LIBRARIES(test_async)
+
+ADD_EXECUTABLE(test_lib tests/test_lib.cpp ${SOURCES})
+TARGET_LINK_LIBRARIES(test_lib)
 
 ADD_EXECUTABLE(run_app src/main.cpp ${SOURCES})
 TARGET_LINK_LIBRARIES(run_app)
 
 ENABLE_TESTING()
+ADD_TEST(AsyncTests bin/test_async)
 ADD_TEST(LibTests bin/run_tests)

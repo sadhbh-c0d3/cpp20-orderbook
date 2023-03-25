@@ -1,5 +1,4 @@
-#undef NDEBUG
-#include <cassert>
+#include "test_util.hpp"
 
 #include <iostream>
 #include <memory>
