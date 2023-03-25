@@ -35,18 +35,50 @@ namespace sadhbhcraft::orderbook
         using OrderBookSideType = typename OrderBookSidePolicy::OrderBookSideType<MySide, OrderType>;
     
 
-        template<typename ExecutionPolicy = util::AsyncNoop>
         util::Generator<OrderQuantity<OrderType>>
-        accept_order(OrderType &order, ExecutionPolicy &&execution_policy = {})
+        accept_order(OrderType &order)
         {
+            util::AsyncNoop execution_policy;
             if (order.side == Side::Buy)
             {
-                return do_accept_order(order, m_ask, m_bid, std::forward<ExecutionPolicy>(execution_policy));
+                auto gen = do_accept_order(order, m_ask, m_bid, execution_policy);
+                while (gen)
+                {
+                    co_yield gen();
+                }
             }
             else
             {
-                return do_accept_order(order, m_bid, m_ask, std::forward<ExecutionPolicy>(execution_policy));
+                auto gen = do_accept_order(order, m_bid, m_ask, execution_policy);
+                while (gen)
+                {
+                    co_yield gen();
+                }
             }
+            co_return;
+        }
+
+        template<typename ExecutionPolicy = util::AsyncNoop>
+        util::Generator<OrderQuantity<OrderType>>
+        accept_order(OrderType &order, ExecutionPolicy &execution_policy)
+        {
+            if (order.side == Side::Buy)
+            {
+                auto gen = do_accept_order(order, m_ask, m_bid, execution_policy);
+                while (gen)
+                {
+                    co_yield gen();
+                }
+            }
+            else
+            {
+                auto gen = do_accept_order(order, m_bid, m_ask, execution_policy);
+                while (gen)
+                {
+                    co_yield gen();
+                }
+            }
+            co_return;
         }
 
         const auto &bid() const { return m_bid; }
@@ -65,9 +97,9 @@ namespace sadhbhcraft::orderbook
             OrderType &order,
             MatchSideType &match_side,
             AddSideType &add_side,
-            ExecutionPolicy &&execution_policy)
+            ExecutionPolicy &execution_policy)
         {
-            auto executions = match_side.match_order(order, std::forward<ExecutionPolicy>(execution_policy));
+            auto executions = match_side.match_order(order, execution_policy);
             typename OrderType::QuantityType matched_quantity = 0;
             while (executions)
             {

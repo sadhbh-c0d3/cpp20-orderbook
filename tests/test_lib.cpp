@@ -5,11 +5,23 @@
 #include "lib.hpp"
 
 
-int main(int argc, const char** argv)
+namespace scob = sadhbhcraft::orderbook;
+namespace scu = sadhbhcraft::util;
+
+
+template<scob::OrderLikeConcept OrderLikeType>
+OrderLikeType &&print(OrderLikeType &&o, std::ostream &os = std::cout)
 {
     namespace scob = sadhbhcraft::orderbook;
-    namespace scu = sadhbhcraft::util;
 
+    os << "{ .price=" << price_of(o) << ", .quantity=" << quantity_of(o) << " }" << std::endl;
+
+    return std::forward<OrderLikeType>(o);
+}
+
+
+int main(int argc, const char** argv)
+{
     scob::OrderBook book;
 
     // 1. When book is empty we expect an order to be added to correct side at
@@ -235,9 +247,8 @@ int main(int argc, const char** argv)
     assert(book.bid().top().size() == 1);
     assert(std::addressof(book.bid().top().first().order()) == std::addressof(o3));
     assert(quantity_of(book.bid().top().first()) == quantity_of(o3));
-
-    std::cout << "Tests OK." << std::endl;
     
+#endif
 
     // 10. We send IOC at price 125 to swipe quantity of 10
     // with OrderSizeLimit of 5
@@ -255,16 +266,14 @@ int main(int argc, const char** argv)
     
     scu::AsyncImmediate<scob::OrderSizeLimit<scob::Order<>>> limit{5};
     auto ex10 = book.accept_order(o10, limit);
-    
+
     assert(ex10);
     // Should execute (120, 5)
-    ex = ex10();
-    std::cerr << quantity_of(ex) << std::endl;
+    auto ex = print(ex10(), std::cerr);
     assert(quantity_of(ex) == 5);
     assert(std::addressof(ex.order()) == std::addressof(o6));
     // Should execute (125, 4)
-    ex = ex10();
-    std::cerr << quantity_of(ex) << std::endl;
+    ex = print(ex10());
     //assert(quantity_of(ex) == 4);
     assert(std::addressof(ex.order()) == std::addressof(o7));
     // No more executions
@@ -272,7 +281,7 @@ int main(int argc, const char** argv)
     // Ask should be clear, as we cancel anything that cannot be executed
     assert(book.ask().empty());
 
-#endif
     
+    std::cout << "Tests OK." << std::endl;
     return 0;
 }

@@ -40,5 +40,12 @@ namespace sadhbhcraft::orderbook
         return QuantityTrait<T>::quantity(x);
     }
 
+    template<typename T>
+    concept OrderLikeConcept =
+        requires(T &x) {
+            { price_of(x) } -> std::convertible_to<NumericType>;
+            { quantity_of(x) } -> std::convertible_to<NumericType>;
+        };
+
 }; // end of namespace
 #endif//INCLUDED_TRAITS_HPP

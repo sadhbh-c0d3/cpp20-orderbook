@@ -8,6 +8,8 @@
 
 namespace sadhbhcraft::orderbook
 {
+    struct UnconstrainedType {};
+    
     template <typename T>
     concept NumericType = std::is_arithmetic<T>::value;
 
@@ -22,6 +24,20 @@ namespace sadhbhcraft::orderbook
             { x.quantity } -> std::convertible_to<typename T::QuantityType>;
         };
 
+    template <typename T, typename OrderType>
+    concept OrderQuantityConcept = 
+        requires(T &x) {
+            { x.order() } -> std::convertible_to<OrderType>;
+            { x.quantity } -> std::convertible_to<typename OrderType::QuantityType>;
+        };
+
+    template <typename T, typename OrderType>
+    concept MatchGeneratorConcept =
+        requires(T &x) {
+            { x() } -> OrderQuantityConcept<OrderType>;
+            { !x } -> std::convertible_to<bool>;
+        };
+
     template <typename T>
     concept OrderBookSideConcept =
         requires(T &x) {
@@ -31,12 +47,12 @@ namespace sadhbhcraft::orderbook
                     std::declval<typename T::OrderType &>(),
                     std::declval<typename T::OrderType::QuantityType>())
                 } -> std::convertible_to<void>;
-            //{   TODO: This is Generator with ExecutionPolicy now
-            //    x.match_order(std::declval<typename T::OrderType &>())
-            //    } -> std::convertible_to<typename T::OrderType::QuantityType>;
+            {
+                x.match_order(std::declval<typename T::OrderType &>(), std::declval<UnconstrainedType&>())
+                } -> MatchGeneratorConcept<typename T::OrderType>;
             {
                 x.side()
-                } -> std::convertible_to<Side>; // C++20 doesn't support '-> Side'
+                } -> std::convertible_to<Side>;
         };
 
 }; // end of namespace

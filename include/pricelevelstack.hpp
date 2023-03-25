@@ -42,6 +42,12 @@ namespace sadhbhcraft::orderbook
     };
     
     template<OrderConcept OrderType>
+    struct PriceTrait<OrderQuantity<OrderType>, typename OrderType::PriceType>
+    {
+        static auto price(const OrderQuantity<OrderType> &o) { return price_of(o.order()); }
+    };
+
+    template<OrderConcept OrderType>
     struct QuantityTrait<OrderQuantity<OrderType>, typename OrderType::QuantityType>
     {
         static auto quantity(const OrderQuantity<OrderType> &o) { return o.quantity; }
@@ -68,30 +74,44 @@ namespace sadhbhcraft::orderbook
 
         template<typename ExecutionPolicy>
         util::Generator<OrderQuantity<OrderType>>
-        match_order(
-            OrderType &order,
-            QuantityType quantity,
-            ExecutionPolicy &&execution_policy)
+        match_order(OrderType &order, QuantityType quantity, ExecutionPolicy &execution_policy)
         {
             QuantityType quantity_filled = 0;
         
             auto it = m_orders.begin();
             auto end = m_orders.end();
 
-            for (; quantity && it != end; ++it)
+            for (; it != end; ++it)
             {
-                OrderQuantity<OrderType> executed{it->order(), std::min(quantity, it->quantity)};
+                // Quantity we should fill on this order
+                QuantityType quantity_to_fill = std::min(quantity, it->quantity);
+
+                // Execution policy will tell if order could be filled
+                // and resulting executed quantity will be adjusted
+                OrderQuantity<OrderType> executed{it->order(), quantity_to_fill};
                 co_await execution_policy(executed);
 
+                // Update variables
                 quantity -= executed.quantity;
                 quantity_filled += executed.quantity;
                 it->quantity -= executed.quantity;
                 m_total_quantity -= executed.quantity;
                 
+                // Send excuted quantity to the caller
                 co_yield executed;
 
-                if (it->quantity)
+                // Check if we fully filled incomming order
+                if (!quantity)
                 {
+                    // Either there is no quantity left on the order,
+                    // or execution policy has trimmed the order.
+                    // DISCUSSION:
+                    // We could introduce new type for execution instead of using OrderQuantity
+                    // and perhaps have executed_quantity and cancelled_quantity there.
+                    if (!it->quantity || executed.quantity != quantity_to_fill)
+                    {
+                        ++it;
+                    }
                     break;
                 }
             }
@@ -156,11 +176,9 @@ namespace sadhbhcraft::orderbook
             do_add_order(order, quantity);
         }
 
-        template<typename ExecutionPolicy>
+        template <typename ExecutionPolicy>
         util::Generator<OrderQuantity<OrderType>>
-        match_order(
-            OrderType &order,
-            ExecutionPolicy &&execution_policy = {})
+        match_order(OrderType &order, ExecutionPolicy &execution_policy)
         {
             QuantityType quantity_filled = 0;
             PriceLevelCompare<MySide> price_compare;
@@ -183,7 +201,7 @@ namespace sadhbhcraft::orderbook
                     auto res = it->match_order(
                         order,
                         quantity_of(order) - quantity_filled,
-                        std::forward<ExecutionPolicy>(execution_policy));
+                        execution_policy);
 
                     while (res)
                     {
