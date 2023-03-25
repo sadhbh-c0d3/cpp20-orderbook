@@ -164,43 +164,43 @@ int main(int argc, const char** argv)
     assert(std::addressof(std::next(book.ask().begin())->first().order()) == std::addressof(o7));
 
 
-    // // 8. We send IOC at price 100 to swipe quantity of 8
-    // // At this stage we have orders:
-    // // Bid: [(105,2), (100, 5), (100, 10), (95,10), (90,5)]
-    // // Ask: [(125,4), (120,7)]
-    // // So we expect executions: [(105,2), (100,5), (100,1)]
-    // // And then we expect Bid: [(100,9), (95,10), (90,5)]
-    // scob::Order o8{
-    //     .side = scob::Side::Sell,
-    //     .order_type = scob::OrderType::IOC,
-    //     .price = 100,
-    //     .quantity = 8
-    // };
+    // 8. We send IOC at price 100 to swipe quantity of 8
+    // At this stage we have orders:
+    // Bid: [(105,2), (100, 5), (100, 10), (95,10), (90,5)]
+    // Ask: [(125,4), (120,7)]
+    // So we expect executions: [(105,2), (100,5), (100,1)]
+    // And then we expect Bid: [(100,9), (95,10), (90,5)]
+    scob::Order o8{
+        .side = scob::Side::Sell,
+        .order_type = scob::OrderType::IOC,
+        .price = 100,
+        .quantity = 8
+    };
 
-    // auto ex8 = book.accept_order(o8);
+    auto ex8 = book.accept_order(o8);
 
-    // assert(ex8);
-    // // Should execute (105, 2)
-    // auto ex = ex8();
-    // assert(quantity_of(ex) == 2);
-    // assert(std::addressof(ex.order()) == std::addressof(o5));
-    // // Should execute (100, 5)
-    // ex = ex8();
-    // assert(quantity_of(ex) == 5);
-    // assert(std::addressof(ex.order()) == std::addressof(o1));
-    // // Should execute 1 from (100, 10)
-    // ex = ex8();
-    // assert(quantity_of(ex) == 1);
-    // assert(std::addressof(ex.order()) == std::addressof(o2));
-    // // No more executions
-    // assert(!ex8);
+    assert(ex8);
+    // Should execute (105, 2)
+    auto ex = ex8();
+    assert(quantity_of(ex) == 2);
+    assert(std::addressof(ex.order()) == std::addressof(o5));
+    // Should execute (100, 5)
+    ex = ex8();
+    assert(quantity_of(ex) == 5);
+    assert(std::addressof(ex.order()) == std::addressof(o1));
+    // Should execute 1 from (100, 10)
+    ex = ex8();
+    assert(quantity_of(ex) == 1);
+    assert(std::addressof(ex.order()) == std::addressof(o2));
+    // No more executions
+    assert(!ex8);
 
-    // // Expect: 3-levels at Bid
-    // // Expect: 1-el in 1st level queue
-    // assert(book.bid().size() == 3);
-    // assert(book.bid().top().size() == 1);
-    // assert(std::addressof(book.bid().top().first().order()) == std::addressof(o2));
-    // assert(quantity_of(book.bid().top().first()) == 9);
+    // Expect: 3-levels at Bid
+    // Expect: 1-el in 1st level queue
+    assert(book.bid().size() == 3);
+    assert(book.bid().top().size() == 1);
+    assert(std::addressof(book.bid().top().first().order()) == std::addressof(o2));
+    assert(quantity_of(book.bid().top().first()) == 9);
 
 
     // // 9. We send IOC at price 95 to swipe quantity of 19
