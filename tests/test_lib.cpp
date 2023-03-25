@@ -6,17 +6,18 @@
 #include "lib.hpp"
 
 
-int main(int argc, const char** argv)
+template<sadhbhcraft::orderbook::PriceLevelOrderBookConcept OrderBookType>
+void test_orderbook(OrderBookType &&book = {})
 {
     namespace scob = sadhbhcraft::orderbook;
     namespace scu = sadhbhcraft::util;
 
-    scob::OrderBook book;
-
+    using OrderType = typename OrderBookType::OrderType;
+    
     // 1. When book is empty we expect an order to be added to correct side at
     // new level
     // Add first order
-    scob::Order o1{
+    OrderType o1{
         .side = scob::Side::Buy,
         .order_type = scob::OrderType::Limit,
         .price = 100,
@@ -33,7 +34,7 @@ int main(int argc, const char** argv)
     // 2. When book contains one level with one order, new order at same price
     // will join at the end of the queue
     // Add second order, same price
-    scob::Order o2{
+    OrderType o2{
         .side = scob::Side::Buy,
         .order_type = scob::OrderType::Limit,
         .price = 100,
@@ -51,7 +52,7 @@ int main(int argc, const char** argv)
     // 3. When book contains one level, new order at worse price will be added
     // to a new deeper level
     // Add third order, lower price
-    scob::Order o3{
+    OrderType o3{
         .side = scob::Side::Buy,
         .order_type = scob::OrderType::Limit,
         .price = 90,
@@ -73,7 +74,7 @@ int main(int argc, const char** argv)
     // 4. When book contains two levels, new order with price in between the two
     // levels will be added to a new level in between
     // Add fourth order, middle price
-    scob::Order o4{
+    OrderType o4{
         .side = scob::Side::Buy,
         .order_type = scob::OrderType::Limit,
         .price = 95,
@@ -98,7 +99,7 @@ int main(int argc, const char** argv)
     // 5. When book contains any levels, new order with new best price will be
     // added to new level at the top of the book
     // Add 5th order, best bid
-    scob::Order o5{
+    OrderType o5{
         .side = scob::Side::Buy,
         .order_type = scob::OrderType::Limit,
         .price = 105,
@@ -108,7 +109,7 @@ int main(int argc, const char** argv)
     // 6. When book contains bids, and no asks, then new sell order will be
     // added to ask side, and bid side won't be altered
     // Add 6th order, best ask
-    scob::Order o6{
+    OrderType o6{
         .side = scob::Side::Sell,
         .order_type = scob::OrderType::Limit,
         .price = 120,
@@ -146,7 +147,7 @@ int main(int argc, const char** argv)
     // points works correctly, and the purpose of this test is to confirm that
     // ask side has opposite sorting direction than bid side
     // Add 7th order, 2nd level ask
-    scob::Order o7{
+    OrderType o7{
         .side = scob::Side::Sell,
         .order_type = scob::OrderType::Limit,
         .price = 125,
@@ -171,7 +172,7 @@ int main(int argc, const char** argv)
     // Ask: [(125,4), (120,7)]
     // So we expect executions: [(105,2), (100,5), (100,1)]
     // And then we expect Bid: [(100,9), (95,10), (90,5)]
-    scob::Order o8{
+    OrderType o8{
         .side = scob::Side::Sell,
         .order_type = scob::OrderType::IOC,
         .price = 100,
@@ -183,15 +184,15 @@ int main(int argc, const char** argv)
     assert(ex8);
     // Should execute (105, 2)
     auto ex = ex8();
-    assert(quantity_of(ex) == 2);
+    assert(scob::quantity_of(ex) == 2);
     assert(std::addressof(ex.order()) == std::addressof(o5));
     // Should execute (100, 5)
     ex = ex8();
-    assert(quantity_of(ex) == 5);
+    assert(scob::quantity_of(ex) == 5);
     assert(std::addressof(ex.order()) == std::addressof(o1));
     // Should execute 1 from (100, 10)
     ex = ex8();
-    assert(quantity_of(ex) == 1);
+    assert(scob::quantity_of(ex) == 1);
     assert(std::addressof(ex.order()) == std::addressof(o2));
     // No more executions
     assert(!ex8);
@@ -201,7 +202,7 @@ int main(int argc, const char** argv)
     assert(book.bid().size() == 3);
     assert(book.bid().top().size() == 1);
     assert(std::addressof(book.bid().top().first().order()) == std::addressof(o2));
-    assert(quantity_of(book.bid().top().first()) == 9);
+    assert(scob::quantity_of(book.bid().top().first()) == 9);
 
 
     // 9. We send IOC at price 95 to swipe quantity of 19
@@ -210,7 +211,7 @@ int main(int argc, const char** argv)
     // Ask: [(125,4), (120,7)]
     // So we expect executions: [(100,9), (95,10)]
     // And then we expect Bid: [(90,5)]
-    scob::Order o9{
+    OrderType o9{
         .side = scob::Side::Sell,
         .order_type = scob::OrderType::IOC,
         .price = 95,
@@ -222,11 +223,11 @@ int main(int argc, const char** argv)
     assert(ex9);
     // Should execute (100, 9)
     ex = ex9();
-    assert(quantity_of(ex) == 9);
+    assert(scob::quantity_of(ex) == 9);
     assert(std::addressof(ex.order()) == std::addressof(o2));
     // Should execute (95, 10)
     ex = ex9();
-    assert(quantity_of(ex) == 10);
+    assert(scob::quantity_of(ex) == 10);
     assert(std::addressof(ex.order()) == std::addressof(o4));
     // No more executions
     assert(!ex9);
@@ -234,7 +235,7 @@ int main(int argc, const char** argv)
     assert(book.bid().size() == 1);
     assert(book.bid().top().size() == 1);
     assert(std::addressof(book.bid().top().first().order()) == std::addressof(o3));
-    assert(quantity_of(book.bid().top().first()) == quantity_of(o3));
+    assert(scob::quantity_of(book.bid().top().first()) == scob::quantity_of(o3));
 
     // 10. We send IOC at price 125 to swipe quantity of 10
     // with OrderSizeLimit of 5
@@ -243,30 +244,41 @@ int main(int argc, const char** argv)
     // Ask: [(125,4), (120,7)]
     // So we expect executions: [(125,4), (120,5)]
     // And then we expect Ask: []
-    scob::Order o10{
+    OrderType o10{
         .side = scob::Side::Buy,
         .order_type = scob::OrderType::IOC,
         .price = 125,
         .quantity = 10
     };
     
-    using LimitType = scu::AsyncImmediate<scob::OrderSizeLimit<scob::Order<>>>;
-    auto ex10 = book.accept_order<LimitType>(o10, {5});
+    scu::AsyncImmediate<scob::OrderSizeLimit<OrderType>> limit{5};
+    auto ex10 = book.accept_order(o10, limit);
     
     assert(ex10);
     // Should execute (120, 5)
     ex = ex10();
-    assert(quantity_of(ex) == 5);
+    assert(scob::quantity_of(ex) == 5);
     assert(std::addressof(ex.order()) == std::addressof(o6));
     // Should execute (125, 4)
     ex = ex10();
-    assert(quantity_of(ex) == 4);
+    assert(scob::quantity_of(ex) == 4);
     assert(std::addressof(ex.order()) == std::addressof(o7));
     // No more executions
     assert(!ex10);
     // Ask should be clear, as we cancel anything that cannot be executed
     assert(book.ask().empty());
+}
+
+
+int main(int argc, const char** argv)
+{
+    namespace scob = sadhbhcraft::orderbook;
+    namespace scu = sadhbhcraft::util;
+
+    test_orderbook<scob::OrderBook<scob::Order<int, int>>>();
+    test_orderbook<scob::OrderBook<scob::Order<long, short>>>();
+    test_orderbook<scob::OrderBook<scob::Order<double, long>>>();
+    test_orderbook<scob::OrderBook<scob::Order<long, double>>>();
     
-    std::cout << "Tests OK." << std::endl;
     return 0;
 }

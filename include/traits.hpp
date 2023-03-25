@@ -7,23 +7,23 @@
 
 namespace sadhbhcraft::orderbook
 {
-    template<typename T, NumericType = int> struct PriceTrait { };
-    template<typename T, NumericType = int> struct QuantityTrait { };
+    template<typename T> struct PriceTrait { };
+    template<typename T> struct QuantityTrait { };
 
     template<NumericType PriceType>
-    struct PriceTrait<PriceType, PriceType>
+    struct PriceTrait<PriceType>
     {
         static auto price(const PriceType &p) { return p; }
     };
 
     template<OrderConcept OrderType>
-    struct PriceTrait<OrderType, typename OrderType::PriceType>
+    struct PriceTrait<OrderType>
     {
         static auto price(const OrderType &o) { return o.price; }
     };
 
     template<OrderConcept OrderType>
-    struct QuantityTrait<OrderType, typename OrderType::QuantityType>
+    struct QuantityTrait<OrderType>
     {
         static auto quantity(const OrderType &o) { return o.quantity; }
     };

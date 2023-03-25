@@ -33,6 +33,8 @@ namespace sadhbhcraft::orderbook
         typedef _OrderType OrderType;
         template<Side MySide, OrderConcept OrderType>
         using OrderBookSideType = typename OrderBookSidePolicy::OrderBookSideType<MySide, OrderType>;
+        using BidBookSideType = OrderBookSideType<Side::Buy, OrderType>;
+        using AskBookSideType = OrderBookSideType<Side::Sell, OrderType>;
     
 
         template<typename ExecutionPolicy = util::AsyncNoop>
@@ -53,8 +55,8 @@ namespace sadhbhcraft::orderbook
         const auto &ask() const { return m_ask; }
 
     private:
-        OrderBookSideType<Side::Buy, OrderType> m_bid;
-        OrderBookSideType<Side::Sell, OrderType> m_ask;
+        BidBookSideType m_bid;
+        AskBookSideType m_ask;
 
         template <
             OrderBookSideConcept MatchSideType,
