@@ -194,11 +194,12 @@ namespace sadhbhcraft::orderbook
 
         //template <typename ExecutionPolicy>
         //util::Generator<OrderQuantity<OrderType>>
-        //std::vector<OrderQuantity<OrderType>>
         //match_order(OrderType &order, ExecutionPolicy &execution_policy)
-        QuantityType match_order(OrderType &order)
+        std::vector<OrderQuantity<OrderType>>
+        //QuantityType
+        match_order(OrderType &order)
         {
-            //std::vector<OrderQuantity<OrderType>> results;
+            std::vector<OrderQuantity<OrderType>> results;
             QuantityType quantity_filled = 0;
             PriceLevelCompare<MySide> price_compare;
 
@@ -229,7 +230,7 @@ namespace sadhbhcraft::orderbook
                     {
                     //    //auto executed = res();
                     //    //co_yield executed;
-                    //    results.push_back(executed);
+                        results.push_back(executed);
                         quantity_filled += executed.quantity;
                     }
 
@@ -246,8 +247,8 @@ namespace sadhbhcraft::orderbook
             }
 
             //co_return;
-            //return results;
-            return quantity_filled;
+            return results;
+            //return quantity_filled;
         }
 
         constexpr Side side() const { return MySide; }

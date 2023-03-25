@@ -97,17 +97,17 @@ namespace sadhbhcraft::orderbook
         {
             //std::vector<OrderQuantity<OrderType>> results;
             //auto executions = match_side.match_order(order, execution_policy);
-            //auto executions = match_side.match_order(order);
-            auto matched_quantity = match_side.match_order(order);
-            //typename OrderType::QuantityType matched_quantity = 0;
-            //for (auto executed : executions)
+            auto executions = match_side.match_order(order);
+            //auto matched_quantity = match_side.match_order(order);
+            typename OrderType::QuantityType matched_quantity = 0;
+            for (auto executed : executions)
             //while (executions)
-            //{
+            {
                 //auto executed = executions();
                 //co_yield executed;
                 //results.push_back(executed);
-                //matched_quantity += quantity_of(executed);
-            //}
+                matched_quantity += quantity_of(executed);
+            }
             auto quantity_remaining = order.quantity - matched_quantity;
 
             if (quantity_remaining && (order.order_type == orderbook::OrderType::Limit))
