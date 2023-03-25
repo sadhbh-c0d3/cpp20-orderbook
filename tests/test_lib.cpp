@@ -165,7 +165,6 @@ int main(int argc, const char** argv)
     assert(std::addressof(std::next(book.ask().begin())->first().order()) == std::addressof(o7));
 
 
-#if 0
     // 8. We send IOC at price 100 to swipe quantity of 8
     // At this stage we have orders:
     // Bid: [(105,2), (100, 5), (100, 10), (95,10), (90,5)]
@@ -184,14 +183,17 @@ int main(int argc, const char** argv)
     assert(ex8);
     // Should execute (105, 2)
     auto ex = ex8();
+    print(ex);
     assert(quantity_of(ex) == 2);
     assert(std::addressof(ex.order()) == std::addressof(o5));
     // Should execute (100, 5)
     ex = ex8();
+    print(ex);
     assert(quantity_of(ex) == 5);
     assert(std::addressof(ex.order()) == std::addressof(o1));
     // Should execute 1 from (100, 10)
     ex = ex8();
+    print(ex);
     assert(quantity_of(ex) == 1);
     assert(std::addressof(ex.order()) == std::addressof(o2));
     // No more executions
@@ -223,10 +225,12 @@ int main(int argc, const char** argv)
     assert(ex9);
     // Should execute (100, 9)
     ex = ex9();
+    print(ex);
     assert(quantity_of(ex) == 9);
     assert(std::addressof(ex.order()) == std::addressof(o2));
     // Should execute (95, 10)
     ex = ex9();
+    print(ex);
     assert(quantity_of(ex) == 10);
     assert(std::addressof(ex.order()) == std::addressof(o4));
     // No more executions
@@ -237,7 +241,6 @@ int main(int argc, const char** argv)
     assert(std::addressof(book.bid().top().first().order()) == std::addressof(o3));
     assert(quantity_of(book.bid().top().first()) == quantity_of(o3));
     
-#endif
 
     // 10. We send IOC at price 125 to swipe quantity of 10
     // with OrderSizeLimit of 5
@@ -258,11 +261,13 @@ int main(int argc, const char** argv)
 
     assert(ex10);
     // Should execute (120, 5)
-    auto ex = print(ex10(), std::cerr);
+    ex = ex10();
+    print(ex);
     assert(quantity_of(ex) == 5);
     assert(std::addressof(ex.order()) == std::addressof(o6));
     // Should execute (125, 4)
-    ex = print(ex10());
+    ex = ex10();
+    print(ex);
     //assert(quantity_of(ex) == 4);
     assert(std::addressof(ex.order()) == std::addressof(o7));
     // No more executions
