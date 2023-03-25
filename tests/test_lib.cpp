@@ -9,17 +9,6 @@ namespace scob = sadhbhcraft::orderbook;
 namespace scu = sadhbhcraft::util;
 
 
-template<scob::OrderLikeConcept OrderLikeType>
-OrderLikeType &&print(OrderLikeType &&o, std::ostream &os = std::cout)
-{
-    namespace scob = sadhbhcraft::orderbook;
-
-    os << "{ .price=" << price_of(o) << ", .quantity=" << quantity_of(o) << " }" << std::endl;
-
-    return std::forward<OrderLikeType>(o);
-}
-
-
 int main(int argc, const char** argv)
 {
     scob::OrderBook book;

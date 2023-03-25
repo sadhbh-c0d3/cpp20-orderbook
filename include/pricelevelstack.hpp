@@ -5,6 +5,7 @@
 #include "concepts.hpp"
 #include "traits.hpp"
 #include "generator.hpp"
+#include "print.hpp"
 
 #include<vector>
 #include<deque>
@@ -78,11 +79,14 @@ namespace sadhbhcraft::orderbook
         {
             QuantityType quantity_filled = 0;
         
+            std::cout << "match() - starting quantity = " << quantity << std::endl;
             auto it = m_orders.begin();
             auto end = m_orders.end();
 
             for (; it != end; ++it)
             {
+                std::cout << "match() - quantity remaining = " << quantity << " --> ";
+                print(*it);
                 // Quantity we should fill on this order
                 QuantityType quantity_to_fill = std::min(quantity, it->quantity);
 
@@ -90,6 +94,8 @@ namespace sadhbhcraft::orderbook
                 // and resulting executed quantity will be adjusted
                 OrderQuantity<OrderType> executed{it->order(), quantity_to_fill};
                 co_await execution_policy(executed);
+                std::cout << "match() - executed --> ";
+                print(*it);
 
                 // Update variables
                 quantity -= executed.quantity;
@@ -116,7 +122,10 @@ namespace sadhbhcraft::orderbook
                 }
             }
 
+            std::cout << "match() - erase " << std::distance(m_orders.begin(), it) << std::endl;
             m_orders.erase(m_orders.begin(), it);
+            
+            std::cout << "match() - final quantity = " << quantity << std::endl;
             co_return;
         }
 
