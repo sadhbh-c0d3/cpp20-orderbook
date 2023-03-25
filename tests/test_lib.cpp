@@ -1,5 +1,7 @@
-#include <iostream>
+#undef NDEBUG
 #include <cassert>
+
+#include <iostream>
 #include <memory>
 
 #include "lib.hpp"
