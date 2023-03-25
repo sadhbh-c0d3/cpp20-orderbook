@@ -183,18 +183,18 @@ int main(int argc, const char** argv)
     auto ex8end = ex8.end();
 
     // Should execute (105, 2)
+    assert(ex8it != ex8end);
     auto &ex = *(ex8it++);
-    print(ex);
     assert(quantity_of(ex) == 2);
     assert(std::addressof(ex.order()) == std::addressof(o5));
     // Should execute (100, 5)
+    assert(ex8it != ex8end);
     ex = *(ex8it++);
-    print(ex);
     assert(quantity_of(ex) == 5);
     assert(std::addressof(ex.order()) == std::addressof(o1));
     // Should execute 1 from (100, 10)
+    assert(ex8it != ex8end);
     ex = *(ex8it++);
-    print(ex);
     assert(quantity_of(ex) == 1);
     assert(std::addressof(ex.order()) == std::addressof(o2));
     // No more executions
@@ -208,6 +208,7 @@ int main(int argc, const char** argv)
     assert(quantity_of(book.bid().top().first()) == 9);
 
 
+#if 0
     // 9. We send IOC at price 95 to swipe quantity of 19
     // At this stage we have orders:
     // Bid: [(100, 9), (95,10), (90,5)]
@@ -224,7 +225,6 @@ int main(int argc, const char** argv)
     auto ex9 = book.accept_order(o9);
     assert(ex9);
 
-#if 0
     // Should execute (100, 9)
     ex = ex9();
     print(ex);
@@ -237,7 +237,6 @@ int main(int argc, const char** argv)
     assert(std::addressof(ex.order()) == std::addressof(o4));
     // No more executions
     assert(!ex9);
-#endif
     
     assert(book.bid().size() == 1);
     assert(book.bid().top().size() == 1);
@@ -245,7 +244,6 @@ int main(int argc, const char** argv)
     assert(quantity_of(book.bid().top().first()) == quantity_of(o3));
     
 
-#if 0
     // 10. We send IOC at price 125 to swipe quantity of 10
     // with OrderSizeLimit of 5
     // At this stage we have orders:
