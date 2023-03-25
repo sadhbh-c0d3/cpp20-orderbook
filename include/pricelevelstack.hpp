@@ -10,7 +10,7 @@
 #include<vector>
 #include<deque>
 #include<algorithm>
-
+#include<cassert>
 
 namespace sadhbhcraft::orderbook
 {
@@ -20,14 +20,18 @@ namespace sadhbhcraft::orderbook
         typedef _OrderType OrderType;
         typedef typename _OrderType::QuantityType QuantityType;
 
+        OrderQuantity() noexcept
+            : order_ref(nullptr), quantity(0)
+        {}
+
         OrderQuantity(OrderType &order, QuantityType quantity) noexcept
             : order_ref(&order), quantity(quantity)
         {}
 
         // This class is fully copyable and assignable - it's essentially poco.
 
-        OrderType &order() noexcept { return *order_ref; }
-        const OrderType &order() const noexcept { return *order_ref; }
+        OrderType &order() noexcept { assert(order_ref); return *order_ref; }
+        const OrderType &order() const noexcept { assert(order_ref); return *order_ref; }
     
         QuantityType quantity;
         // ^ This can be remaining quantity if this instance lays on OrderPriceLevel, or

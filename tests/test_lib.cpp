@@ -12,6 +12,7 @@ namespace scu = sadhbhcraft::util;
 int main(int argc, const char** argv)
 {
     scob::OrderBook book;
+    assert(false);
 
     // 1. When book is empty we expect an order to be added to correct side at
     // new level
