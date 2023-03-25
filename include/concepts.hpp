@@ -47,9 +47,9 @@ namespace sadhbhcraft::orderbook
                     std::declval<typename T::OrderType &>(),
                     std::declval<typename T::OrderType::QuantityType>())
                 } -> std::convertible_to<void>;
-            {
-                x.match_order(std::declval<typename T::OrderType &>(), std::declval<UnconstrainedType&>())
-                } -> auto;//MatchGeneratorConcept<typename T::OrderType>;
+            //{
+            //    x.match_order(std::declval<typename T::OrderType &>(), std::declval<UnconstrainedType&>())
+            //    } -> MatchGeneratorConcept<typename T::OrderType>;
             {
                 x.side()
                 } -> std::convertible_to<Side>;

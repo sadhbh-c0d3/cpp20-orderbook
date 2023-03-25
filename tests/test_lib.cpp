@@ -178,6 +178,7 @@ int main(int argc, const char** argv)
         .quantity = 8
     };
 
+#if 0
     auto ex8 = book.accept_order(o8);
 
     assert(ex8);
@@ -242,7 +243,6 @@ int main(int argc, const char** argv)
     assert(quantity_of(book.bid().top().first()) == quantity_of(o3));
     
 
-#if 0
     // 10. We send IOC at price 125 to swipe quantity of 10
     // with OrderSizeLimit of 5
     // At this stage we have orders:

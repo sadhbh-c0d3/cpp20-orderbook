@@ -73,12 +73,13 @@ namespace sadhbhcraft::orderbook
             m_total_quantity += quantity;
         }
 
-        template<typename ExecutionPolicy>
+        //template<typename ExecutionPolicy>
         //util::Generator<OrderQuantity<OrderType>>
-        std::vector<OrderQuantity<OrderType>>
-        match_order(OrderType &order, QuantityType quantity, ExecutionPolicy &execution_policy)
+        //std::vector<OrderQuantity<OrderType>>
+        //match_order(OrderType &order, QuantityType quantity, ExecutionPolicy &execution_policy)
+        QuantityType match_order(OrderType &order, QuantityType quantity)
         {
-            std::vector<OrderQuantity<OrderType>> results;
+            //std::vector<OrderQuantity<OrderType>> results;
             QuantityType quantity_filled = 0;
         
             std::cout << "match() - starting quantity = " << quantity << std::endl;
@@ -107,7 +108,7 @@ namespace sadhbhcraft::orderbook
                 
                 // Send excuted quantity to the caller
                 //co_yield executed;
-                results.push_back(executed);
+                //results.push_back(executed);
 
                 // Check if we fully filled incomming order
                 if (!quantity)
@@ -130,7 +131,8 @@ namespace sadhbhcraft::orderbook
             
             std::cout << "match() - final quantity = " << quantity << std::endl;
             //co_return;
-            return results;
+            //return results;
+            return quantity_filled;
         }
 
         auto price() const { return m_price; }
@@ -189,12 +191,13 @@ namespace sadhbhcraft::orderbook
             do_add_order(order, quantity);
         }
 
-        template <typename ExecutionPolicy>
+        //template <typename ExecutionPolicy>
         //util::Generator<OrderQuantity<OrderType>>
-        std::vector<OrderQuantity<OrderType>>
-        match_order(OrderType &order, ExecutionPolicy &execution_policy)
+        //std::vector<OrderQuantity<OrderType>>
+        //match_order(OrderType &order, ExecutionPolicy &execution_policy)
+        QuantityType match_order(OrderType &order)
         {
-            std::vector<OrderQuantity<OrderType>> results;
+            //std::vector<OrderQuantity<OrderType>> results;
             QuantityType quantity_filled = 0;
             PriceLevelCompare<MySide> price_compare;
 
@@ -213,19 +216,20 @@ namespace sadhbhcraft::orderbook
                         break; //< Order was partially filled
                     }
 
-                    auto res = it->match_order(
-                        order,
-                        quantity_of(order) - quantity_filled,
-                        execution_policy);
+                    quantity_filled += it->match_order(order, quantity_of(order) - quantity_filled);
+                    //auto res = it->match_order(
+                    //    order,
+                    //    quantity_of(order) - quantity_filled,
+                    //    execution_policy);
 
-                    //while (res)
-                    for (auto executed : res)
-                    {
-                        //auto executed = res();
-                        //co_yield executed;
-                        results.push_back(executed);
-                        quantity_filled += executed.quantity;
-                    }
+                    ////while (res)
+                    //for (auto executed : res)
+                    //{
+                    //    //auto executed = res();
+                    //    //co_yield executed;
+                    //    results.push_back(executed);
+                    //    quantity_filled += executed.quantity;
+                    //}
 
                     if (!it->empty())
                     {
@@ -240,7 +244,8 @@ namespace sadhbhcraft::orderbook
             }
 
             //co_return;
-            return results;
+            //return results;
+            return quantity_filled;
         }
 
         constexpr Side side() const { return MySide; }
