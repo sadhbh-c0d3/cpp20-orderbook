@@ -10,6 +10,7 @@
 
 #include <coroutine>
 #include <exception>
+#include <optional>
 
 
 namespace sadhbhcraft::util
@@ -25,10 +26,26 @@ struct Generator
  
     struct promise_type;
     using handle_type = std::coroutine_handle<promise_type>;
+
+    template<typename X>
+    struct storage_trait
+    {
+        using value = std::optional<X>;
+        enum { store_by_value = false };
+    };
+ 
+    template<std::default_initializable X>
+    struct storage_trait<X>
+    {
+        using value = X;
+        enum { store_by_value = true };
+    };
+
+    using storage_t = storage_trait<T>;
  
     struct promise_type // required
     {
-        T value_;
+        storage_t::value value_;
         std::exception_ptr exception_;
  
         Generator get_return_object()
@@ -71,7 +88,15 @@ struct Generator
         fill();
         full_ = false; // we are going to move out previously cached
                        // result to make promise empty again
-        return std::move(h_.promise().value_);
+        if constexpr (storage_t::store_by_value)
+        {
+            return std::move(h_.promise().value_);
+        }
+        else
+        {
+            // We'll invoke: constexpr T&& std::optional<T>::operator*() && noexcept;
+            return std::move(*(h_.promise().value_));
+        }
     }
  
 private:

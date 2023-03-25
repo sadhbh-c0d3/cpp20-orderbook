@@ -4,6 +4,7 @@
 #include "enums.hpp"
 #include "concepts.hpp"
 #include "traits.hpp"
+#include "generator.hpp"
 
 #include<vector>
 #include<deque>
@@ -18,31 +19,32 @@ namespace sadhbhcraft::orderbook
         typedef _OrderType OrderType;
         typedef typename _OrderType::QuantityType QuantityType;
 
-        OrderQuantity(OrderType &order, QuantityType quantity): order(order), quantity(quantity) {}
-        OrderQuantity(OrderQuantity &&) = default;
-        OrderQuantity& operator = (OrderQuantity &&x)
-        {
-            // Tell C++ to "steal" `order` pointer from `x`. This will actually copy that pointer.
-            // This is legal, because `&order` points to some stable memory block in scope far outside.
-            // Remember that `OrderType &` is stored as `OrderType *`, and we can simply copy & assign it.
-            // The only reason why we can't assign it using `=` is C++ rules, which protect `&` references.
-            // The rules exist generally to protect expiring objects to be referenced, and all fields are
-            // treated as expiring references, so if a field is of type reference, then it becomes expiring
-            // even though in fact it is a reference to outside world, that is no expiring anywhere.
-            //
-            // DISCUSSION
-            // Is it a good programming practice? Probably not :D
-            // Good question is whether this is maybe suggestion to use `shared_ptr<OrderType>` instead.
-            // We don't necessarily want to manage lifetime of the `&order`, and raw reference to something
-            // in the outside scope should be sufficient. Cheaper, and there is no need for it (yet).
-            // NOTE: this struct is only an internal detail of the Price-Level-Stack OrderBook Side, and
-            // we don't expose it anywhere outside. We require that user owns the orders they pass to us.
-            // At this stage we implement OrderBook as pure matching engine and not order management component.
-            return (*new (this) OrderQuantity(std::move(x)));
-        } 
+        OrderQuantity(OrderType &order, QuantityType quantity) noexcept
+            : order_ref(order), quantity(quantity)
+        {}
 
-        OrderType &order;
+        // This class is fully copyable and assignable - it's essentially poco.
+
+        OrderType &order() noexcept { return order_ref; }
+        const OrderType &order() const noexcept { return order_ref; }
+    
         QuantityType quantity;
+        // ^ This can be remaining quantity if this instance lays on OrderPriceLevel, or
+        // it can be executed quantity if this is instance holds result of applying `ExecutionPolicy`.
+        // The sole purpose of `OrderQuantity` structure is to bind `OrderType` with some quantity.
+    
+    private:
+        std::reference_wrapper<OrderType> order_ref;
+        // ^ We don't necessarily want to manage lifetime of the order, and raw
+        // reference to something in the outside scope should be sufficient.
+        // TODO: Add OrderPointerPolicy so that used can choose whether OrderBook
+        // does or does not manage lifetime of the orders.
+    };
+    
+    template<OrderConcept OrderType>
+    struct QuantityTrait<OrderQuantity<OrderType>, typename OrderType::QuantityType>
+    {
+        static auto quantity(const OrderQuantity<OrderType> &o) { return o.quantity; }
     };
 
     template<OrderConcept _OrderType, template <typename> class _QueueType>
@@ -63,45 +65,39 @@ namespace sadhbhcraft::orderbook
 
             m_total_quantity += quantity;
         }
-        
-        QuantityType match_order(OrderType &order, QuantityType quantity)
+
+        template<typename ExecutionPolicy>
+        util::Generator<OrderQuantity<OrderType>>
+        match_order(
+            OrderType &order,
+            QuantityType quantity,
+            ExecutionPolicy &&execution_policy)
         {
             QuantityType quantity_filled = 0;
         
             auto it = m_orders.begin();
-            auto last_filled = it;
-            auto last_filled_quantity = quantity;
+            auto end = m_orders.end();
 
-            for (; it != m_orders.end(); ++it)
+            for (; quantity && it != end; ++it)
             {
-                if (quantity < it->quantity)
+                OrderQuantity<OrderType> executed{it->order(), std::min(quantity, it->quantity)};
+                co_await execution_policy(executed);
+
+                quantity -= executed.quantity;
+                quantity_filled += executed.quantity;
+                it->quantity -= executed.quantity;
+                m_total_quantity -= executed.quantity;
+                
+                co_yield executed;
+
+                if (it->quantity)
                 {
-                    // Fully filled requested quantity
-                    quantity_filled += quantity;
-                    it->quantity -= quantity;
-                    m_total_quantity -= quantity;
-                    last_filled_quantity = quantity;
-                    quantity = 0;
                     break;
                 }
-
-                // Fully filled order in the queue
-                last_filled = it;
-                last_filled_quantity = it->quantity;
-                
-                // update this level
-                it->quantity = 0;
-                m_total_quantity -= last_filled_quantity;
-
-                // fully filled at `it`
-                quantity_filled += last_filled_quantity;
-                // more to go
-                quantity -= last_filled_quantity;
             }
 
-            m_orders.erase(m_orders.begin(), last_filled);
-
-            return quantity_filled;
+            m_orders.erase(m_orders.begin(), it);
+            co_return;
         }
 
         auto price() const { return m_price; }
@@ -160,14 +156,16 @@ namespace sadhbhcraft::orderbook
             do_add_order(order, quantity);
         }
 
-        QuantityType match_order(OrderType &order)
+        template<typename ExecutionPolicy>
+        util::Generator<OrderQuantity<OrderType>>
+        match_order(
+            OrderType &order,
+            ExecutionPolicy &&execution_policy = {})
         {
             QuantityType quantity_filled = 0;
             PriceLevelCompare<MySide> price_compare;
 
             auto it = m_levels.begin();
-            auto last_filled = it; //< it's actually one after last filled
-            auto last_quantity_filled = quantity_filled;
             
             if (price_compare(*it, order))
             {
@@ -175,46 +173,38 @@ namespace sadhbhcraft::orderbook
                 {
                     if (quantity_of(order) == quantity_filled)
                     {
-                        last_filled = it;
                         break; //< Order was fully filled
                     }
                     else if (price_compare(order, *it))
                     {
                         break; //< Order was partially filled
                     }
-                    last_quantity_filled = it->match_order(order, quantity_of(order) - quantity_filled);
-                    quantity_filled += last_quantity_filled;
-                    last_filled = it;
-                }
 
-                if (last_filled != it)
-                {
-                    // then level at `it` was partially filled
-                    // and `last_quantity_filled` tells how much was filled on that level
-                    // The `it->total_quantity` will tell remaining quantity on partially
-                    // filled level.
-                    // TODO: (1) Collect the filled orders for purpose of firing market data events
+                    auto res = it->match_order(
+                        order,
+                        quantity_of(order) - quantity_filled,
+                        std::forward<ExecutionPolicy>(execution_policy));
+
+                    while (res)
+                    {
+                        auto executed = res();
+                        co_yield executed;
+                        quantity_filled += executed.quantity;
+                    }
+
+                    if (!it->empty())
+                    {
+                        // Level wasn't fully filled
+                        break;
+                    }
                 }
 
                 // Remove all levels that were fully filled, but keep the one
                 // that still has quantity left
-                // TODO: (2) Collect the filled orders for purpose of firing market data events
-                //
-                // The collected orders need to be tested against user trading
-                // margin using some margin policy. Matched orders and filled
-                // quantity on levels will remaing matched and filled, but as a
-                // result of check orders can be either executed or cancelled,
-                // and if any quantity is not executed, then we need to repeat
-                // whole match process again. If incoming order is of FOC type,
-                // then whole repetition needs to happen in reversible
-                // transaction, because if FOC order is not fully filled, then
-                // quantities on levels should remain unchaged. That would
-                // require perhaps two pass approach.
-                //
-                m_levels.erase(m_levels.begin(), last_filled);
+                m_levels.erase(m_levels.begin(), it);
             }
 
-            return quantity_filled;
+            co_return;
         }
 
         constexpr Side side() const { return MySide; }
@@ -252,6 +242,29 @@ namespace sadhbhcraft::orderbook
     {
         template<Side MySide, OrderConcept OrderType>
         using OrderBookSideType = PriceLevelStack<MySide, OrderType, StackType, QueueType>;
+    };
+
+    template<OrderConcept _OrderType>
+    class OrderSizeLimit
+    {
+    public:
+        using OrderType = _OrderType;
+        using QuantityType = typename OrderType::QuantityType;
+
+        OrderSizeLimit(QuantityType max_order_size) : max_order_size_(max_order_size)
+        {
+        }
+
+        void operator()(OrderQuantity<OrderType> &executed)
+        {
+            if (executed.quantity > max_order_size_)
+            {
+                executed.quantity = max_order_size_;
+            }
+        }
+
+    private:
+        const QuantityType max_order_size_;
     };
 
 } // end of namespace sadhbhcraft::orderbook

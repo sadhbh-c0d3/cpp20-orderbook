@@ -31,9 +31,9 @@ namespace sadhbhcraft::orderbook
                     std::declval<typename T::OrderType &>(),
                     std::declval<typename T::OrderType::QuantityType>())
                 } -> std::convertible_to<void>;
-            {
-                x.match_order(std::declval<typename T::OrderType &>())
-                } -> std::convertible_to<typename T::OrderType::QuantityType>;
+            //{   TODO: This is Generator with ExecutionPolicy now
+            //    x.match_order(std::declval<typename T::OrderType &>())
+            //    } -> std::convertible_to<typename T::OrderType::QuantityType>;
             {
                 x.side()
                 } -> std::convertible_to<Side>; // C++20 doesn't support '-> Side'

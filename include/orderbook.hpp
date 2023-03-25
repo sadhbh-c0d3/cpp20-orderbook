@@ -1,8 +1,10 @@
 #ifndef INCLUDED_ORDERBOOK_HPP
 #define INCLUDED_ORDERBOOK_HPP
 
-#include "enums.hpp"
+#include "async.hpp"
 #include "concepts.hpp"
+#include "enums.hpp"
+#include "generator.hpp"
 #include "pricelevelstack.hpp"
 
 
@@ -21,7 +23,10 @@ namespace sadhbhcraft::orderbook
     };
 
 
-    template<OrderConcept _OrderType = Order<>, typename OrderBookSidePolicy = PriceLevelStackBookSidePolicy<>>
+    template<
+        OrderConcept _OrderType = Order<>,
+        typename OrderBookSidePolicy = PriceLevelStackBookSidePolicy<>
+        >
     class OrderBook
     {
     public:
@@ -30,15 +35,17 @@ namespace sadhbhcraft::orderbook
         using OrderBookSideType = typename OrderBookSidePolicy::OrderBookSideType<MySide, OrderType>;
     
 
-        void accept_order(OrderType &order)
+        template<typename ExecutionPolicy = util::AsyncNoop>
+        util::Generator<OrderQuantity<OrderType>>
+        accept_order(OrderType &order, ExecutionPolicy &&execution_policy = {})
         {
             if (order.side == Side::Buy)
             {
-                do_accept_order(order, m_ask, m_bid);
+                return do_accept_order(order, m_ask, m_bid, std::forward<ExecutionPolicy>(execution_policy));
             }
             else
             {
-                do_accept_order(order,m_bid, m_ask);
+                return do_accept_order(order, m_bid, m_ask, std::forward<ExecutionPolicy>(execution_policy));
             }
         }
 
@@ -51,16 +58,31 @@ namespace sadhbhcraft::orderbook
 
         template <
             OrderBookSideConcept MatchSideType,
-            OrderBookSideConcept AddSideType>
-        void do_accept_order(OrderType &order, MatchSideType &match_side, AddSideType &add_side)
+            OrderBookSideConcept AddSideType,
+            typename ExecutionPolicy>
+        util::Generator<OrderQuantity<OrderType>>
+        do_accept_order(
+            OrderType &order,
+            MatchSideType &match_side,
+            AddSideType &add_side,
+            ExecutionPolicy &&execution_policy)
         {
-            auto matched_quantity = match_side.match_order(order);
+            auto executions = match_side.match_order(order, std::forward<ExecutionPolicy>(execution_policy));
+            typename OrderType::QuantityType matched_quantity = 0;
+            while (executions)
+            {
+                auto executed = executions();
+                co_yield executed;
+                matched_quantity += quantity_of(executed);
+            }
             auto quantity_remaining = order.quantity - matched_quantity;
 
-            if (quantity_remaining && (order.order_type == sadhbhcraft::orderbook::OrderType::Limit))
+            if (quantity_remaining && (order.order_type == orderbook::OrderType::Limit))
             {
                 add_side.add_order(order, quantity_remaining);
             }
+
+            co_return;
         }
     };
 
