@@ -42,17 +42,21 @@ namespace sadhbhcraft::orderbook
             if (order.side == Side::Buy)
             {
                 auto gen = do_accept_order(order, m_ask, m_bid, execution_policy);
-                while (gen)
+                for (auto x : gen)
+                //while (gen)
                 {
-                    co_yield gen();
+                    //co_yield gen();
+                    co_yield x;
                 }
             }
             else
             {
                 auto gen = do_accept_order(order, m_bid, m_ask, execution_policy);
-                while (gen)
+                for (auto x : gen)
+                //while (gen)
                 {
-                    co_yield gen();
+                    //co_yield gen();
+                    co_yield x;
                 }
             }
             co_return;
@@ -65,17 +69,21 @@ namespace sadhbhcraft::orderbook
             if (order.side == Side::Buy)
             {
                 auto gen = do_accept_order(order, m_ask, m_bid, execution_policy);
-                while (gen)
+                for (auto x : gen)
+                //while (gen)
                 {
-                    co_yield gen();
+                    //co_yield gen();
+                    co_yield x;
                 }
             }
             else
             {
                 auto gen = do_accept_order(order, m_bid, m_ask, execution_policy);
-                while (gen)
+                for (auto x : gen)
+                //while (gen)
                 {
-                    co_yield gen();
+                    //co_yield gen();
+                    co_yield x;
                 }
             }
             co_return;
@@ -92,19 +100,23 @@ namespace sadhbhcraft::orderbook
             OrderBookSideConcept MatchSideType,
             OrderBookSideConcept AddSideType,
             typename ExecutionPolicy>
-        util::Generator<OrderQuantity<OrderType>>
+        //util::Generator<OrderQuantity<OrderType>>
+        std::vector<OrderQuantity<OrderType>>
         do_accept_order(
             OrderType &order,
             MatchSideType &match_side,
             AddSideType &add_side,
             ExecutionPolicy &execution_policy)
         {
+            std::vector<OrderQuantity<OrderType>> results;
             auto executions = match_side.match_order(order, execution_policy);
             typename OrderType::QuantityType matched_quantity = 0;
-            while (executions)
+            for (auto executed : executions)
+            //while (executions)
             {
-                auto executed = executions();
-                co_yield executed;
+                //auto executed = executions();
+                //co_yield executed;
+                results.push_back(executed);
                 matched_quantity += quantity_of(executed);
             }
             auto quantity_remaining = order.quantity - matched_quantity;
@@ -114,7 +126,8 @@ namespace sadhbhcraft::orderbook
                 add_side.add_order(order, quantity_remaining);
             }
 
-            co_return;
+            //co_return;
+            return results;
         }
     };
 

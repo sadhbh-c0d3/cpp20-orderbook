@@ -49,7 +49,7 @@ namespace sadhbhcraft::orderbook
                 } -> std::convertible_to<void>;
             {
                 x.match_order(std::declval<typename T::OrderType &>(), std::declval<UnconstrainedType&>())
-                } -> MatchGeneratorConcept<typename T::OrderType>;
+                } -> auto;//MatchGeneratorConcept<typename T::OrderType>;
             {
                 x.side()
                 } -> std::convertible_to<Side>;
