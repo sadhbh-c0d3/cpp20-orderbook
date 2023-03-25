@@ -178,9 +178,9 @@ int main(int argc, const char** argv)
         .quantity = 8
     };
 
-#if 0
     auto ex8 = book.accept_order(o8);
 
+#if 0
     assert(ex8);
     // Should execute (105, 2)
     auto ex = ex8();
@@ -199,6 +199,7 @@ int main(int argc, const char** argv)
     assert(std::addressof(ex.order()) == std::addressof(o2));
     // No more executions
     assert(!ex8);
+#endif
 
     // Expect: 3-levels at Bid
     // Expect: 1-el in 1st level queue
@@ -223,6 +224,7 @@ int main(int argc, const char** argv)
     
     auto ex9 = book.accept_order(o9);
 
+#if 0
     assert(ex9);
     // Should execute (100, 9)
     ex = ex9();
@@ -236,6 +238,7 @@ int main(int argc, const char** argv)
     assert(std::addressof(ex.order()) == std::addressof(o4));
     // No more executions
     assert(!ex9);
+#endif
     
     assert(book.bid().size() == 1);
     assert(book.bid().top().size() == 1);
@@ -243,6 +246,7 @@ int main(int argc, const char** argv)
     assert(quantity_of(book.bid().top().first()) == quantity_of(o3));
     
 
+#if 0
     // 10. We send IOC at price 125 to swipe quantity of 10
     // with OrderSizeLimit of 5
     // At this stage we have orders:
