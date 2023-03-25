@@ -10,7 +10,7 @@
 #include<vector>
 #include<deque>
 #include<algorithm>
-#include<cassert>
+
 
 namespace sadhbhcraft::orderbook
 {
@@ -20,18 +20,14 @@ namespace sadhbhcraft::orderbook
         typedef _OrderType OrderType;
         typedef typename _OrderType::QuantityType QuantityType;
 
-        OrderQuantity() noexcept
-            : order_ref(nullptr), quantity(0)
-        {}
-
         OrderQuantity(OrderType &order, QuantityType quantity) noexcept
-            : order_ref(&order), quantity(quantity)
+            : order_ref(order), quantity(quantity)
         {}
 
         // This class is fully copyable and assignable - it's essentially poco.
 
-        OrderType &order() noexcept { assert(order_ref); return *order_ref; }
-        const OrderType &order() const noexcept { assert(order_ref); return *order_ref; }
+        OrderType &order() noexcept { return order_ref; }
+        const OrderType &order() const noexcept { return order_ref; }
     
         QuantityType quantity;
         // ^ This can be remaining quantity if this instance lays on OrderPriceLevel, or
@@ -39,7 +35,7 @@ namespace sadhbhcraft::orderbook
         // The sole purpose of `OrderQuantity` structure is to bind `OrderType` with some quantity.
     
     private:
-        OrderType *order_ref;
+        std::reference_wrapper<OrderType> order_ref;
         // ^ We don't necessarily want to manage lifetime of the order, and raw
         // reference to something in the outside scope should be sufficient.
         // TODO: Add OrderPointerPolicy so that used can choose whether OrderBook
@@ -78,13 +74,13 @@ namespace sadhbhcraft::orderbook
         }
 
         //template<typename ExecutionPolicy>
-        //util::Generator<OrderQuantity<OrderType>>
+        util::Generator<OrderQuantity<OrderType>>
         //match_order(OrderType &order, QuantityType quantity, ExecutionPolicy &execution_policy)
-        std::vector<OrderQuantity<OrderType>>
+        //std::vector<OrderQuantity<OrderType>>
         //QuantityType
         match_order(OrderType &order, QuantityType quantity)
         {
-            std::vector<OrderQuantity<OrderType>> results;
+            //std::vector<OrderQuantity<OrderType>> results;
             QuantityType quantity_filled = 0;
         
             std::cout << "match() - starting quantity = " << quantity << std::endl;
@@ -112,8 +108,8 @@ namespace sadhbhcraft::orderbook
                 m_total_quantity -= executed.quantity;
                 
                 // Send excuted quantity to the caller
-                //co_yield executed;
-                results.push_back(executed);
+                co_yield executed;
+                //results.push_back(executed);
 
                 // Check if we fully filled incomming order
                 if (!quantity)
@@ -135,8 +131,8 @@ namespace sadhbhcraft::orderbook
             m_orders.erase(m_orders.begin(), it);
             
             std::cout << "match() - final quantity = " << quantity << std::endl;
-            //co_return;
-            return results;
+            co_return;
+            //return results;
             //return quantity_filled;
         }
 
@@ -229,10 +225,10 @@ namespace sadhbhcraft::orderbook
                     //    quantity_of(order) - quantity_filled,
                     //    execution_policy);
 
-                    //while (res)
-                    for (const auto &executed : res)
+                    while (res)
+                    //for (const auto &executed : res)
                     {
-                        //auto executed = res();
+                        auto executed = res();
                         //co_yield executed;
                         results.push_back(executed);
                         quantity_filled += executed.quantity;
