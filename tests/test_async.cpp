@@ -1,6 +1,7 @@
 #include "generator.hpp"
 #include "async.hpp"
 
+#include <cassert>
 #include <vector>
 #include <iostream>
 
@@ -83,6 +84,21 @@ struct Level
     }
 };
 
+bool assert_front_equal_and_pop(std::vector<OrderQuantity> &expected, const OrderQuantity &result)
+{
+    assert(!expected.empty());
+    auto expected_result = expected.front();
+    bool error = (result.order != expected_result.order || result.quantity != expected_result.quantity);
+    if (error)
+    {
+        std::cerr << "Assertion error: "
+                  << "{" << result.order << ", " << result.quantity 
+                  << "} != {" << expected_result.order << ", " << expected_result.quantity 
+                  << "}" << std::endl;
+    }
+    expected.erase(expected.begin());
+    return error;
+}
 
 void main1()
 {
@@ -96,6 +112,18 @@ void main1()
         }
     };
 
+    std::vector<OrderQuantity> expected_executions{
+        {1, 10},
+        {2, 2}
+    };
+
+    std::vector<OrderQuantity> expected_rest{
+        {2, 3},
+        {3 ,2},
+        {4, 7},
+        {5, 8}
+    };
+
     std::cout << "Level before" << std::endl;
     for (const auto &oq : level.queue)
     {
@@ -103,20 +131,24 @@ void main1()
     }
     
     auto results = level.match(12);
+    auto error = false;
 
     std::cout << "Executions" << std::endl;
     while (results)
     {
         auto result = results();
         std::cout << result.order << ", " << result.quantity << std::endl;
+        error |= assert_front_equal_and_pop(expected_executions, result);
     }
 
     std::cout << "Level after" << std::endl;
     for (const auto &oq : level.queue)
     {
         std::cout << oq.order << ", " << oq.quantity << std::endl;
+        error |= assert_front_equal_and_pop(expected_rest, oq);
     }
 
+    assert(!error);
     std::cout << "OK" << std::endl;
 }
 
@@ -131,6 +163,18 @@ void main2()
             {.order=5, .quantity=8},
         }
     };
+    
+    std::vector<OrderQuantity> expected_executions{
+        {1, 5},
+        {2, 5},
+        {3, 2}
+    };
+
+    std::vector<OrderQuantity> expected_rest{
+        {4, 7},
+        {5, 8}
+    };
+
     std::cout << "Level before" << std::endl;
     for (const auto &oq : level.queue)
     {
@@ -140,20 +184,24 @@ void main2()
     AsyncImmediate<OrderSizeLimit> ep{5};
     
     auto results = level.match(12, ep);
+    auto error = false;
 
     std::cout << "Executions" << std::endl;
     while (results)
     {
         auto result = results();
         std::cout << result.order << ", " << result.quantity << std::endl;
+        error |= assert_front_equal_and_pop(expected_executions, result);
     }
 
     std::cout << "Level after" << std::endl;
     for (const auto &oq : level.queue)
     {
         std::cout << oq.order << ", " << oq.quantity << std::endl;
+        error |= assert_front_equal_and_pop(expected_rest, oq);
     }
 
+    assert(!error);
     std::cout << "OK" << std::endl;
 }
 
