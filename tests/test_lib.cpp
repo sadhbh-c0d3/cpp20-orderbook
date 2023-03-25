@@ -181,7 +181,6 @@ int main(int argc, const char** argv)
     auto ex8 = book.accept_order(o8);
     assert(ex8);
 
-#if 0
     // Should execute (105, 2)
     auto ex = ex8();
     print(ex);
@@ -199,7 +198,6 @@ int main(int argc, const char** argv)
     assert(std::addressof(ex.order()) == std::addressof(o2));
     // No more executions
     assert(!ex8);
-#endif
 
     // Expect: 3-levels at Bid
     // Expect: 1-el in 1st level queue
