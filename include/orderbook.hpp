@@ -35,39 +35,30 @@ namespace sadhbhcraft::orderbook
         using OrderBookSideType = typename OrderBookSidePolicy::OrderBookSideType<MySide, OrderType>;
     
 
-        //bool accept_order(OrderType &order)
-        //{
-        //    if (order.side == Side::Buy)
-        //    {
-        //        do_accept_order(order, m_ask, m_bid);
-        //    }
-        //    else
-        //    {
-        //        do_accept_order(order, m_bid, m_ask);
-        //    }
-        //    return false;
-        //}
-
-        util::Generator<OrderQuantity<OrderType>>
-        accept_order(OrderType &order)
+        bool accept_order(OrderType &order)
         {
             if (order.side == Side::Buy)
             {
-                auto gen = do_accept_order(order, m_ask, m_bid);
-                for (auto x : gen)
-                {
-                    co_yield x;
-                }
+                do_accept_order(order, m_ask, m_bid);
             }
             else
             {
-                auto gen = do_accept_order(order, m_bid, m_ask);
-                for (auto x : gen)
-                {
-                    co_yield x;
-                }
+                do_accept_order(order, m_bid, m_ask);
             }
-            co_return;
+            return false;
+        }
+
+        std::vector<OrderQuantity<OrderType>>
+        accept_order_v(OrderType &order)
+        {
+            if (order.side == Side::Buy)
+            {
+                return do_accept_order(order, m_ask, m_bid);
+            }
+            else
+            {
+                return do_accept_order(order, m_bid, m_ask);
+            }
         }
 
         //template<typename ExecutionPolicy = util::AsyncNoop>

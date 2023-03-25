@@ -178,34 +178,27 @@ int main(int argc, const char** argv)
         .quantity = 8
     };
 
-    auto ex8 = book.accept_order(o8);
-    assert(ex8);
-    while (ex8)
-    {
-        auto ex = ex8();
-        print(ex);
-    }
-    assert(false);
+    auto ex8 = book.accept_order_v(o8);
+    auto ex8it = ex8.begin();
+    auto ex8end = ex8.end();
 
-#if 0
     // Should execute (105, 2)
-    auto ex = ex8();
+    auto &ex = *(ex8it++);
     print(ex);
     assert(quantity_of(ex) == 2);
     assert(std::addressof(ex.order()) == std::addressof(o5));
     // Should execute (100, 5)
-    ex = ex8();
+    ex = *(ex8it++);
     print(ex);
     assert(quantity_of(ex) == 5);
     assert(std::addressof(ex.order()) == std::addressof(o1));
     // Should execute 1 from (100, 10)
-    ex = ex8();
+    ex = *(ex8it++);
     print(ex);
     assert(quantity_of(ex) == 1);
     assert(std::addressof(ex.order()) == std::addressof(o2));
     // No more executions
-    assert(!ex8);
-#endif
+    assert(ex8it == ex8end);
 
     // Expect: 3-levels at Bid
     // Expect: 1-el in 1st level queue
