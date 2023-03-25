@@ -42,7 +42,7 @@ namespace sadhbhcraft::orderbook
     };
     
     template<OrderConcept OrderType>
-    struct QuantityTrait<OrderQuantity<OrderType>, typename OrderType::QuantityType>
+    struct QuantityTrait<OrderQuantity<OrderType>>
     {
         static auto quantity(const OrderQuantity<OrderType> &o) { return o.quantity; }
     };
@@ -131,7 +131,7 @@ namespace sadhbhcraft::orderbook
     };
 
     template<OrderConcept OrderType, template <typename> class QueueType>
-    struct PriceTrait<OrderPriceLevel<OrderType, QueueType>, typename OrderType::PriceType>
+    struct PriceTrait<OrderPriceLevel<OrderType, QueueType>>
     {
         static auto price(const OrderPriceLevel<OrderType, QueueType> &opl) { return opl.price(); }
     };
