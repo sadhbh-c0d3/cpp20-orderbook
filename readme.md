@@ -9,9 +9,9 @@ This work can be seen as an attepmt to make paractical use of new features of C+
 
 ## Journey from C++98 to C++20
 
-I wanted to show as the user of C++ the evolution of the programming techniques
-from C++98 up to C++20, and so I have organised commits in a specific way so
-that first commits show how this would be implemented in C++98, and with every
+I wanted to show, how do I see as the user of C++, the evolution of the programming techniques from C++98 up to C++20.
+
+I have organised commits in a specific way so that first commits show how this would be implemented in C++98, and with every
 next commit we move towards C++20 concepts and co-routines happens.
 
 
