@@ -13,7 +13,7 @@ namespace sadhbhcraft::util
             { std::declval<F>()(x) };
     };
 
-    template <typename T>
+    template <typename T, bool Checked = true>
     struct DefaultConstructibleWrapper
     {
         static constexpr int is_stored_by_value = std::is_default_constructible<T>::value;
@@ -30,7 +30,14 @@ namespace sadhbhcraft::util
             else
             {
                 // We'll invoke: constexpr T&& std::optional<T>::operator*() && noexcept;
-                return std::forward<T>(*obj);
+                if constexpr (Checked)
+                {
+                    return std::forward<T>(obj.value());
+                }
+                else
+                {
+                    return std::forward<T>(*obj);
+                }
             }
         }
     };
