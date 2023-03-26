@@ -47,19 +47,22 @@ namespace sadhbhcraft::util
         template<typename T>
         struct awaitable
         {
-            using storage_type_trait = ValueStorageTrait<T>;
-            F f_;
-            typename storage_type_trait::type x_;
-        
+            awaitable(F f, T x): f_(std::move(f)), x_(std::move(x))
+            {}
+
             bool await_ready() { return false; }
             void await_suspend(std::coroutine_handle<> h)
             {
-                f_(storage_type_trait::extract_value(
-                    std::forward<typename storage_type_trait::type>(x_)));
+                f_(std::forward<T>(x_));
 
                 h.resume();
             }
             void await_resume() {}
+
+        private:
+            F f_;
+            T x_;
+        
         };
         
         template<typename T>
