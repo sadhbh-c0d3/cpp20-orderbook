@@ -14,7 +14,7 @@ namespace sadhbhcraft::util
     };
 
     template <typename T>
-    struct ValueStorageTrait
+    struct DefaultConstructibleWrapper
     {
         static constexpr int is_stored_by_value = std::is_default_constructible<T>::value;
         using type = typename std::conditional<is_stored_by_value, T, std::optional<T>>::type;

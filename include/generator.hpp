@@ -31,11 +31,9 @@ namespace sadhbhcraft::util
         struct promise_type;
         using handle_type = std::coroutine_handle<promise_type>;
 
-        using storage_type_trait = ValueStorageTrait<T>;
-
         struct promise_type // required
         {
-            typename storage_type_trait::type value_;
+            typename DefaultConstructibleWrapper<T>::type value_;
             std::exception_ptr exception_;
     
             Generator get_return_object()
@@ -80,8 +78,8 @@ namespace sadhbhcraft::util
                         // result to make promise empty again
 
             return std::move(
-                storage_type_trait::extract_value(
-                    std::forward<typename storage_type_trait::type>(
+                DefaultConstructibleWrapper<T>::extract_value(
+                    std::forward<typename DefaultConstructibleWrapper<T>::type>(
                         h_.promise().value_)));
         }
     
