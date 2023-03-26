@@ -19,6 +19,8 @@
 // micro-service and await response (this is not in the scope)
 
 
+#include "util.hpp"
+
 namespace sadhbhcraft::util
 {
     struct AsyncNoop
@@ -33,10 +35,10 @@ namespace sadhbhcraft::util
         AsyncImmediate(F f): f_(std::move(f))
         {}
 
-        template<typename T>
-        auto operator()(T &x)
+        template<ArgumentToCallable<F> T>
+        auto operator()(T &&x)
         {
-            return apply(&x);
+            return apply(std::forward<T>(x));
         }
 
     private:
@@ -45,22 +47,25 @@ namespace sadhbhcraft::util
         template<typename T>
         struct awaitable
         {
+            using storage_type_trait = ValueStorageTrait<T>;
             F f_;
-            T *px_;
+            typename storage_type_trait::type x_;
         
             bool await_ready() { return false; }
             void await_suspend(std::coroutine_handle<> h)
             {
-                f_(*px_);
+                f_(storage_type_trait::extract_value(
+                    std::forward<typename storage_type_trait::type>(x_)));
+
                 h.resume();
             }
             void await_resume() {}
         };
         
         template<typename T>
-        auto apply(T *px)
+        auto apply(T &&x)
         {
-            return awaitable<T>{f_, px};
+            return awaitable<T>{f_, std::forward<T>(x)};
         }
     };
 

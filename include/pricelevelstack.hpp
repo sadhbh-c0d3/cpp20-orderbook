@@ -78,13 +78,13 @@ namespace sadhbhcraft::orderbook
             auto it = m_orders.begin();
             auto end = m_orders.end();
 
-            for (; quantity && it != end; ++it)
+            for (; it != end; ++it)
             {
                 // Quantity we should fill on this order
                 QuantityType quantity_to_fill = std::min(quantity, it->quantity);
 
                 OrderQuantity<OrderType> executed{it->order(), quantity_to_fill};
-                co_await execution_policy(executed);
+                co_await execution_policy(std::ref(executed));
 
                 quantity -= executed.quantity;
                 quantity_filled += executed.quantity;
