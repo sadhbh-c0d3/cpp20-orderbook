@@ -7,12 +7,14 @@ Order Book implementation in C++20 and a long journey from C++98.
 
 This work can be seen as an attepmt to make paractical use of new features of C++ language.
 
+Project created using *Dockerized C++ Code Template* from my GitHub repository [cpp-template](https://github.com/sadhbh-c0d3/cpp-template).
+
 ## Journey from C++98 to C++20
 
 I wanted to show, how do I see as the user of C++, the evolution of the programming techniques from C++98 up to C++20.
 
 I have organised commits in a specific way so that first commits show how this would be implemented in C++98, and with every
-next commit we move towards C++20 concepts and co-routines happens.
+next commit we move towards C++20 concepts and co-routines.
 
 
 ## Architecture
@@ -44,7 +46,7 @@ type of each price or quantity.
 
 At this stage the order book implementation acts purely as matching engine, and not as order manager,
 and because of that I am not using smart pointers like `shared_ptr<>` in the `OrderQuantity`.
-I decided to leaver the responsibility of order management to the user. However I was considering to
+I decided to leave the responsibility of order management to the user. However I was considering to
 add order pointer policy class that would control whether we use smart pointers or not.
 
 
