@@ -2,7 +2,8 @@
 #define INCLUDED_TRAITS_HPP
 
 #include "enums.hpp"
-#include "concepts.hpp"
+
+#include "util/concepts.hpp"
 
 
 namespace sadhbhcraft::orderbook
@@ -10,7 +11,7 @@ namespace sadhbhcraft::orderbook
     template<typename T> struct PriceTrait { };
     template<typename T> struct QuantityTrait { };
 
-    template<NumericType PriceType>
+    template<util::NumberConcept PriceType>
     struct PriceTrait<PriceType>
     {
         static auto price(const PriceType &p) { return p; }

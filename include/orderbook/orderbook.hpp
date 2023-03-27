@@ -1,16 +1,16 @@
 #ifndef INCLUDED_ORDERBOOK_HPP
 #define INCLUDED_ORDERBOOK_HPP
 
-#include "async.hpp"
-#include "concepts.hpp"
 #include "enums.hpp"
-#include "generator.hpp"
+#include "concepts.hpp"
 #include "pricelevelstack.hpp"
+#include "util/async.hpp"
+#include "util/generator.hpp"
 
 
 namespace sadhbhcraft::orderbook
 {
-    template<NumericType _PriceType = int, NumericType _QuantityType = int>
+    template<util::NumberConcept _PriceType = int, util::NumberConcept _QuantityType = int>
     struct Order
     {
         typedef _PriceType PriceType;

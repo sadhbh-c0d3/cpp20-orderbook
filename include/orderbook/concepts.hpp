@@ -3,21 +3,23 @@
 
 #include "enums.hpp"
 
-#include <concepts>
+#include "util/async.hpp"
+#include "util/concepts.hpp"
 
 
 namespace sadhbhcraft::orderbook
 {
-    struct UnconstrainedType {};
-    
-    template <typename T>
-    concept NumericType = std::is_arithmetic<T>::value;
+    template <typename T, typename A>
+    concept ExecutionPolicyConcept = 
+        requires(T x) {
+            { x(std::declval<A>()) } -> util::AwaitableConcept;
+        };
 
     template<typename T>
     concept OrderConcept =
         requires(T &x) {
-            NumericType<typename T::PriceType>;
-            NumericType<typename T::QuantityType>;
+            util::NumberConcept<typename T::PriceType>;
+            util::NumberConcept<typename T::QuantityType>;
             { x.side } -> std::convertible_to<Side>;
             { x.order_type } -> std::convertible_to<OrderType>;
             { x.price } -> std::convertible_to<typename T::PriceType>;
@@ -50,7 +52,7 @@ namespace sadhbhcraft::orderbook
             {
                 x.match_order(
                     std::declval<typename T::OrderType &>(),
-                    std::declval<UnconstrainedType &>())
+                    std::declval<util::AsyncNoop>())
                 } -> MatchGeneratorConcept<typename T::OrderType>;
             { c.side() } -> std::convertible_to<Side>;
         };

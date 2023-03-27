@@ -2,4 +2,4 @@
 
 namespace sadhbhcraft::orderbook {
 
-}
+}// namespace sadhbhcraft::orderbook

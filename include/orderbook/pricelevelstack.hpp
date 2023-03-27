@@ -4,11 +4,15 @@
 #include "enums.hpp"
 #include "concepts.hpp"
 #include "traits.hpp"
-#include "generator.hpp"
+
+#include "util/concepts.hpp"
+#include "util/generator.hpp"
 
 #include<vector>
 #include<deque>
 #include<algorithm>
+#include<set>
+#include<list>
 
 
 namespace sadhbhcraft::orderbook
@@ -42,12 +46,19 @@ namespace sadhbhcraft::orderbook
     };
     
     template<OrderConcept OrderType>
+    struct PriceTrait<OrderQuantity<OrderType>>
+    {
+        static auto price(const OrderQuantity<OrderType> &o) { return price_of(o.order()); }
+    };
+
+    template<OrderConcept OrderType>
     struct QuantityTrait<OrderQuantity<OrderType>>
     {
         static auto quantity(const OrderQuantity<OrderType> &o) { return o.quantity; }
     };
 
     template<OrderConcept _OrderType, template <typename> class _QueueType>
+    requires util::IsQueue<_QueueType, OrderQuantity<_OrderType>>::value
     class OrderPriceLevel
     {
     public:
@@ -66,7 +77,7 @@ namespace sadhbhcraft::orderbook
             m_total_quantity += quantity;
         }
 
-        template<typename ExecutionPolicy>
+        template<ExecutionPolicyConcept<OrderQuantity<OrderType>> ExecutionPolicy>
         util::Generator<OrderQuantity<OrderType>>
         match_order(
             OrderType &order,
@@ -156,6 +167,7 @@ namespace sadhbhcraft::orderbook
     template<Side MySide, OrderConcept _OrderType,
         template <typename> class _StackType,
         template <typename> class _QueueType>
+    requires util::IsRandomStack<_StackType, OrderPriceLevel<_OrderType, _QueueType>>::value
     class PriceLevelStack
     {
     public:
@@ -169,7 +181,7 @@ namespace sadhbhcraft::orderbook
             do_add_order(order, quantity);
         }
 
-        template<typename ExecutionPolicy>
+        template<ExecutionPolicyConcept<OrderQuantity<OrderType>> ExecutionPolicy>
         util::Generator<OrderQuantity<OrderType>>
         match_order(
             OrderType &order,

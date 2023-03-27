@@ -1,9 +1,6 @@
 #ifndef INCLUDED_ASYNC_HPP
 #define INCLUDED_ASYNC_HPP
 
-#include <coroutine>
-#include <utility>
-
 // These are some basic things we can co_await on
 //
 //      SomePolicy policy;
@@ -18,8 +15,11 @@
 // ...something else user-defined could be true async, e.g. send request to a
 // micro-service and await response (this is not in the scope)
 
+#include <coroutine>
+#include <utility>
 
 #include "util.hpp"
+
 
 namespace sadhbhcraft::util
 {

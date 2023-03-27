@@ -1,7 +1,7 @@
 #include "test_util.hpp"
 
-#include "generator.hpp"
-#include "async.hpp"
+#include "util/async.hpp"
+#include "util/generator.hpp"
 
 #include <vector>
 #include <iostream>
