@@ -37,7 +37,7 @@ namespace sadhbhcraft::orderbook
         using AskBookSideType = OrderBookSideType<Side::Sell, OrderType>;
     
 
-        template<typename ExecutionPolicy = util::AsyncNoop>
+        template<ExecutionPolicyConcept<OrderQuantity<OrderType>> ExecutionPolicy = util::AsyncNoop>
         util::Generator<OrderQuantity<OrderType>>
         accept_order(OrderType &order, ExecutionPolicy &&execution_policy = {})
         {
@@ -61,7 +61,7 @@ namespace sadhbhcraft::orderbook
         template <
             OrderBookSideConcept MatchSideType,
             OrderBookSideConcept AddSideType,
-            typename ExecutionPolicy>
+            ExecutionPolicyConcept<OrderQuantity<OrderType>> ExecutionPolicy>
         util::Generator<OrderQuantity<OrderType>>
         do_accept_order(
             OrderType &order,

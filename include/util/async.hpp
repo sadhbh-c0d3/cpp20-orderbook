@@ -68,7 +68,7 @@ namespace sadhbhcraft::util
         template<typename T>
         auto apply(T &&x)
         {
-            return awaitable<T>{f_, std::forward<T>(x)};
+            return awaitable<std::decay_t<T>>{f_, std::forward<T>(x)};
         }
     };
 
