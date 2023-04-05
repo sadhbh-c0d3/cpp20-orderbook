@@ -57,6 +57,40 @@ namespace sadhbhcraft::orderbook
         static auto quantity(const OrderQuantity<OrderType> &o) { return o.quantity; }
     };
 
+    template<OrderConcept _OrderType>
+    struct ExecutionGeneratorPolicy
+    {
+        using OrderType = _OrderType;
+        using ResultType = util::Generator<OrderQuantity<_OrderType>>;
+    };
+
+    template<OrderConcept _OrderType, template <typename> class _QueueType>
+    requires util::IsQueue<_QueueType, OrderQuantity<_OrderType>>::value
+    struct CollectExecutionsPolicy
+    {
+        using OrderType = _OrderType;
+        using QueueType = _QueueType<OrderQuantity<OrderType>>;
+        using ResultType = typename OrderType::QuantityType;
+
+        void operator()(ResultType &r)
+        {
+            r = 0;
+        }
+
+        template<typename R, typename T>
+        requires (
+            std::is_same_v<typename std::remove_cvref<R>::type, ResultType>
+            && std::is_same_v<typename std::remove_cvref<T>::type, OrderQuantity<OrderType>>
+        )
+        void operator()(R &&r, T &&x)
+        {
+            executions.emplace_back(std::forward<T>(x));
+            r += x.quantity;
+        }
+
+        QueueType executions;
+    };
+
     template<OrderConcept _OrderType, template <typename> class _QueueType>
     requires util::IsQueue<_QueueType, OrderQuantity<_OrderType>>::value
     class OrderPriceLevel
@@ -77,15 +111,28 @@ namespace sadhbhcraft::orderbook
             m_total_quantity += quantity;
         }
 
-        template<ExecutionPolicyConcept<OrderQuantity<OrderType>> ExecutionPolicy>
-        util::Generator<OrderQuantity<OrderType>>
+        template<
+            ExecutionPolicyConcept<OrderQuantity<OrderType>> ExecutionPolicy,
+            MatchResultPolicyConcept<OrderQuantity<OrderType>> MatchResultPolicy,
+            // Unfortunatelly we cannot have policy-based selection whether function is coroutine or not.
+            // Following proposal was created:
+            // "Delay the judgement for coroutine function after the instantiation of template entity."
+            // https://lists.isocpp.org/std-proposals/2021/01/2291.php
+            std::enable_if_t<
+                !IsAsyncExecutionPolicy<ExecutionPolicy, OrderQuantity<OrderType>>::value &&
+                !util::IsGenerator<typename MatchResultPolicy::ResultType, OrderQuantity<OrderType>>::value,
+                bool> = true
+            >
+        typename MatchResultPolicy::ResultType
         match_order(
             OrderType &order,
             QuantityType quantity,
-            ExecutionPolicy &&execution_policy)
+            ExecutionPolicy &&execution_policy,
+            MatchResultPolicy &&match_result_policy)
         {
-            QuantityType quantity_filled = 0;
-        
+            typename MatchResultPolicy::ResultType result;
+            match_result_policy(result);
+
             auto it = m_orders.begin();
             auto end = m_orders.end();
 
@@ -95,13 +142,77 @@ namespace sadhbhcraft::orderbook
                 QuantityType quantity_to_fill = std::min(quantity, it->quantity);
 
                 OrderQuantity<OrderType> executed{it->order(), quantity_to_fill};
-                co_await execution_policy(std::ref(executed));
+                
+                execution_policy(executed);
 
                 quantity -= executed.quantity;
-                quantity_filled += executed.quantity;
                 it->quantity -= executed.quantity;
                 m_total_quantity -= executed.quantity;
+
+                match_result_policy(result, executed);
+
+                // Check if we fully filled incomming order
+                if (!quantity)
+                {
+                    // Either there is no quantity left on the order,
+                    // or execution policy has trimmed the order.
+                    // DISCUSSION:
+                    // We could introduce new type for execution instead of using OrderQuantity
+                    // and perhaps have executed_quantity and cancelled_quantity there.
+                    if (!it->quantity || executed.quantity != quantity_to_fill)
+                    {
+                        ++it;
+                    }
+                    break;
+                }
+            }
+
+            m_orders.erase(m_orders.begin(), it);
+            
+            return result;
+        }
+
+        template <
+            ExecutionPolicyConcept<OrderQuantity<OrderType>> ExecutionPolicy,
+            MatchResultPolicyConcept<OrderQuantity<OrderType>> MatchResultPolicy,
+            // Unfortunatelly we cannot have policy-based selection whether function is coroutine or not.
+            // Following proposal was created:
+            // "Delay the judgement for coroutine function after the instantiation of template entity."
+            // https://lists.isocpp.org/std-proposals/2021/01/2291.php
+            std::enable_if_t<
+                util::IsGenerator<typename MatchResultPolicy::ResultType, OrderQuantity<OrderType>>::value,
+                bool> = true
+            >
+        typename MatchResultPolicy::ResultType
+        match_order(
+            OrderType &order,
+            QuantityType quantity,
+            ExecutionPolicy &&execution_policy,
+            MatchResultPolicy &&match_result_policy)
+        {
+            auto it = m_orders.begin();
+            auto end = m_orders.end();
+
+            for (; it != end; ++it)
+            {
+                // Quantity we should fill on this order
+                QuantityType quantity_to_fill = std::min(quantity, it->quantity);
+
+                OrderQuantity<OrderType> executed{it->order(), quantity_to_fill};
                 
+                if constexpr (IsAsyncExecutionPolicy<ExecutionPolicy, OrderQuantity<OrderType>>::value)
+                {
+                    co_await execution_policy(std::ref(executed));
+                }
+                else
+                {
+                    execution_policy(executed);
+                }
+
+                quantity -= executed.quantity;
+                it->quantity -= executed.quantity;
+                m_total_quantity -= executed.quantity;
+
                 co_yield executed;
 
                 // Check if we fully filled incomming order
@@ -121,6 +232,7 @@ namespace sadhbhcraft::orderbook
             }
 
             m_orders.erase(m_orders.begin(), it);
+            
             co_return;
         }
 
@@ -163,7 +275,7 @@ namespace sadhbhcraft::orderbook
             }
         }
     };
-    
+
     template<Side MySide, OrderConcept _OrderType,
         template <typename> class _StackType,
         template <typename> class _QueueType>
@@ -187,6 +299,39 @@ namespace sadhbhcraft::orderbook
             OrderType &order,
             ExecutionPolicy &&execution_policy = {})
         {
+            if constexpr (true)
+            {
+                using MatchResultPolicy = ExecutionGeneratorPolicy<OrderType>;
+                MatchResultPolicy match_result_policy{};
+
+                return match_order_detail(order,
+                                          std::forward<ExecutionPolicy>(execution_policy),
+                                          std::forward<MatchResultPolicy>(match_result_policy));
+            }
+            else
+            {
+                using MatchResultPolicy = CollectExecutionsPolicy<OrderType, std::vector>;
+                MatchResultPolicy match_result_policy{};
+
+                using ExecutionPolicy_ = typename std::remove_cvref<ExecutionPolicy>::type::SyncType;
+                ExecutionPolicy_ execution_policy_{execution_policy.sync()};
+
+                return match_order_detail(order,
+                                          std::forward<ExecutionPolicy_>(execution_policy_),
+                                          std::forward<MatchResultPolicy>(match_result_policy));
+            }
+        }
+
+        template<
+            ExecutionPolicyConcept<OrderQuantity<OrderType>> ExecutionPolicy,
+            MatchResultPolicyConcept<OrderQuantity<OrderType>> MatchResultPolicy
+        >
+        util::Generator<OrderQuantity<OrderType>>
+        match_order_detail(
+            OrderType &order,
+            ExecutionPolicy &&execution_policy,
+            MatchResultPolicy &&match_result_policy)
+        {
             QuantityType quantity_filled = 0;
             PriceLevelCompare<MySide> price_compare;
 
@@ -208,13 +353,28 @@ namespace sadhbhcraft::orderbook
                     auto res = it->match_order(
                         order,
                         quantity_of(order) - quantity_filled,
-                        std::forward<ExecutionPolicy>(execution_policy));
+                        std::forward<ExecutionPolicy>(execution_policy),
+                        std::forward<MatchResultPolicy>(match_result_policy));
 
-                    while (res)
+                    if constexpr (util::IsGenerator<typename MatchResultPolicy::ResultType, OrderQuantity<OrderType>>::value)
                     {
-                        auto executed = res();
-                        co_yield executed;
-                        quantity_filled += executed.quantity;
+                        while (res)
+                        {
+                            auto executed = res();
+                            co_yield executed;
+                            quantity_filled += executed.quantity;
+                        }
+                    }
+                    else
+                    {
+                        quantity_filled += res;
+
+                        for (const auto &executed : match_result_policy.executions)
+                        {
+                            co_yield executed;
+                        }
+
+                        match_result_policy.executions.clear();
                     }
 
                     if (!it->empty())

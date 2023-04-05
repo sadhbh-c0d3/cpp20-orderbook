@@ -23,10 +23,36 @@
 
 namespace sadhbhcraft::util
 {
+    struct SyncNoop
+    {
+        template<typename T>
+        void operator()(T &&oq) {}
+    };
+
     struct AsyncNoop
     {
         template<typename T>
         std::suspend_never operator()(T &&oq) { return {}; }
+
+        using SyncType = SyncNoop;
+        
+        SyncType sync() const { return {}; }
+    };
+
+    template<typename F>
+    struct SyncImmediate
+    {
+        SyncImmediate(F f): f_(std::move(f))
+        {}
+
+        template<ArgumentToCallable<F> T>
+        void operator()(T &&x)
+        {
+            f_(std::forward<T>(x));
+        }
+
+    private:
+        F f_;
     };
 
     template<typename F>
@@ -40,6 +66,10 @@ namespace sadhbhcraft::util
         {
             return apply(std::forward<T>(x));
         }
+        
+        using SyncType = SyncImmediate<F>;
+
+        SyncType sync() const { return {f_}; }
 
     private:
         F f_;

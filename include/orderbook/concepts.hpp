@@ -12,8 +12,29 @@ namespace sadhbhcraft::orderbook
     template <typename T, typename A>
     concept ExecutionPolicyConcept = 
         requires(T x) {
+            { x(std::declval<A>()) };
+        };
+    
+    template <typename T, typename A>
+    concept AsyncExecutionPolicyConcept = 
+        requires(T x) {
             { x(std::declval<A>()) } -> util::AwaitableConcept;
         };
+
+    template <typename T, typename A>
+    struct IsAsyncExecutionPolicy
+    {
+        template<typename X> struct test : std::false_type {};
+        template<AsyncExecutionPolicyConcept<A> S> struct test<S> : std::true_type {};
+        static constexpr bool value = test<typename std::remove_cvref<T>::type>();
+    };
+    
+    template <typename T, typename A>
+    concept MatchResultPolicyConcept =
+        requires(T x) {
+            { std::declval<typename T::ResultType> };
+        };
+    
 
     template<typename T>
     concept OrderConcept =
