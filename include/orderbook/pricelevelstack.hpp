@@ -299,14 +299,18 @@ namespace sadhbhcraft::orderbook
             OrderType &order,
             ExecutionPolicy &&execution_policy = {})
         {
-            if constexpr (true)
+            constexpr bool USE_COROUTINE = true;
+
+            if constexpr (USE_COROUTINE)
             {
                 using MatchResultPolicy = ExecutionGeneratorPolicy<OrderType>;
                 MatchResultPolicy match_result_policy{};
 
-                return match_order_detail(order,
+                auto g = match_order_detail(order,
                                           std::forward<ExecutionPolicy>(execution_policy),
                                           std::forward<MatchResultPolicy>(match_result_policy));
+
+                while (g) { co_yield g(); }
             }
             else
             {
@@ -316,9 +320,11 @@ namespace sadhbhcraft::orderbook
                 using ExecutionPolicy_ = typename std::remove_cvref<ExecutionPolicy>::type::SyncType;
                 ExecutionPolicy_ execution_policy_{execution_policy.sync()};
 
-                return match_order_detail(order,
+                auto g = match_order_detail(order,
                                           std::forward<ExecutionPolicy_>(execution_policy_),
                                           std::forward<MatchResultPolicy>(match_result_policy));
+                
+                while (g) { co_yield g(); }
             }
         }
 
