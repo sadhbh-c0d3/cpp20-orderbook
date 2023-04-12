@@ -7,12 +7,17 @@
 
 namespace sadhbhcraft::util
 {
+    struct NullType {};
+
+    template<bool Cond, typename T>
+    using MaybeType = std::conditional<Cond, T, NullType>::type;
+
     template<typename T, typename F>
     concept ArgumentToCallable =
         requires(T &&x) {
             { std::declval<F>()(x) };
     };
-
+    
     template <typename T, bool Checked = true>
     struct DefaultConstructibleWrapper
     {

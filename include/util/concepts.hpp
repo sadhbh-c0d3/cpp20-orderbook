@@ -18,6 +18,26 @@ namespace sadhbhcraft::util
             { x.await_suspend(std::declval<std::coroutine_handle<>>()) };
             { x.await_resume() };
         };
+    
+    template<typename T, typename A>
+    concept PromiseConcept =
+        requires(T x) {
+            { x.yield_value(std::declval<A&&>) };
+        };
+
+    template<typename T, typename A>
+    concept GeneratorConcept =
+        requires(T x) {
+            PromiseConcept<typename T::promise_type, A>;
+        };
+
+    template <typename T, typename A>
+    struct IsGenerator
+    {
+        template<typename X> struct test : std::false_type {};
+        template<GeneratorConcept<A> S> struct test<S> : std::true_type {};
+        static constexpr bool value = test<typename std::remove_cvref<T>::type>();
+    };
 
     template<typename T, typename A = int>
     concept RangeConcept =
