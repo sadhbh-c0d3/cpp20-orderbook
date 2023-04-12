@@ -3,6 +3,7 @@
 #include "util/async.hpp"
 #include "util/generator.hpp"
 
+#include <functional>
 #include <vector>
 #include <iostream>
 
@@ -19,6 +20,7 @@ struct OrderQuantity
     int order;
     int quantity;
 };
+
 
 class OrderSizeLimit
 {
@@ -62,7 +64,7 @@ struct Level
                     .order = iter->order, 
                     .quantity = quantity
                 };
-                co_await ep(oq);
+                co_await ep(std::ref(oq));
                 iter->quantity -= oq.quantity;
                 quantity -= oq.quantity;
                 co_yield oq;
@@ -74,7 +76,7 @@ struct Level
                     .order = iter->order, 
                     .quantity = iter->quantity
                 };
-                co_await ep(oq);
+                co_await ep(std::ref(oq));
                 quantity -= oq.quantity;
                 iter->quantity = 0; // remainder is cancelled
                 co_yield oq;
