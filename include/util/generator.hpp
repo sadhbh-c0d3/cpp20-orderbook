@@ -56,11 +56,17 @@ namespace sadhbhcraft::util
     
         handle_type h_;
     
-        Generator(handle_type h)
-            : h_(h)
-        {
-        }
-        ~Generator() { h_.destroy(); }
+        Generator() {}
+        Generator(handle_type h): h_(h) {}
+
+        Generator(Generator &&o): h_(std::exchange(o.h_, {})) {}
+        Generator& operator=(Generator &&o) { std::swap(h_, o.h_); return *this; }
+
+        Generator(const Generator &) = delete;
+        Generator& operator=(const Generator &) = delete;
+
+        ~Generator() { if (h_) { h_.destroy(); } }
+
         explicit operator bool()
         {
             fill(); // The only way to reliably find out whether or not we finished coroutine,

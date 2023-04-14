@@ -17,6 +17,9 @@ SET(SOURCES
 ADD_EXECUTABLE(test_async tests/test_async.cpp ${SOURCES})
 TARGET_LINK_LIBRARIES(test_async)
 
+ADD_EXECUTABLE(test_generator_istream tests/test_generator_istream.cpp ${SOURCES})
+TARGET_LINK_LIBRARIES(test_generator_istream)
+
 ADD_EXECUTABLE(test_lib tests/test_lib.cpp ${SOURCES})
 TARGET_LINK_LIBRARIES(test_lib)
 
@@ -28,5 +31,6 @@ TARGET_LINK_LIBRARIES(run_app)
 
 ENABLE_TESTING()
 ADD_TEST(AsyncTests bin/test_async)
+ADD_TEST(GeneratorIStream bin/test_generator_istream)
 ADD_TEST(LibTests bin/test_lib)
 ADD_TEST(ParserTests bin/test_parser)
