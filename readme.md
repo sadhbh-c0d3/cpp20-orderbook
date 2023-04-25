@@ -23,7 +23,7 @@ next commit we move towards C++20 concepts and co-routines.
 ## Architecture
 
 The architecture is very simple and intuitive.
-There is an `OrderBook` template that takes `OrderType` and `OrderBookSide` template parameters.
+There is an `OrderBook` template that takes `OrderType` and `OrderBookSidePolicy` template parameters.
  
 The `OrderType` needs to conform to `OrderConcept`, i.e. needs to have a price, quantity, side and type.
  
