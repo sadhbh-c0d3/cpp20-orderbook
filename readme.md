@@ -2,7 +2,20 @@
 
 ### ***Order Book implementation in C++20 (Concepts & Co-Routines)***
 
+## Watch
+
+Long journey from C++98 to C++20 Concepts & Coroutines on example of the Order Book implemenatation
+
+C++20 How to:
+- Make an IStream from asynchronous Generator
+- Build FIX message parser using Concepts
+- Enable Coroutines by policy using SFINAE
+
 [![Watch My Video!](https://img.youtube.com/vi/3k2O3KiE_xY/0.jpg)](https://www.youtube.com/watch?v=3k2O3KiE_xY)
+[![Watch My Video!](https://img.youtube.com/vi/H3C7VywxAAs/0.jpg)](https://youtu.be/H3C7VywxAAs)
+[![Watch My Video!](https://img.youtube.com/vi/cAs-SMfULIs/0.jpg)](https://youtu.be/cAs-SMfULIs)
+[![Watch My Video!](https://img.youtube.com/vi/NrmdNMLW5g4/0.jpg)](https://youtu.be/NrmdNMLW5g4)
+
 
 ## About
 
