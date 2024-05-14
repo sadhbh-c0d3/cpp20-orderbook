@@ -26,7 +26,9 @@ public:
     OrderSizeLimit(int max_order_size): max_order_size_(max_order_size)
     {}
 
-    void operator ()(OrderQuantity &oq)
+    template<typename T>
+    requires std::is_same_v<std::remove_cvref_t<T>, OrderQuantity>
+    void operator ()(T &&oq)
     {
         if (oq.quantity > max_order_size_)
         {
