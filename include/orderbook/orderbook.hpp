@@ -32,7 +32,7 @@ namespace sadhbhcraft::orderbook
     public:
         typedef _OrderType OrderType;
         template<Side MySide, OrderConcept OrderType>
-        using OrderBookSideType = typename OrderBookSidePolicy::OrderBookSideType<MySide, OrderType>;
+        using OrderBookSideType = typename OrderBookSidePolicy::template OrderBookSideType<MySide, OrderType>;
         using BidBookSideType = OrderBookSideType<Side::Buy, OrderType>;
         using AskBookSideType = OrderBookSideType<Side::Sell, OrderType>;
     
