@@ -87,7 +87,7 @@ namespace sadhbhcraft::orderbook
             QuantityType quantity_filled = 0;
         
             auto it = m_orders.begin();
-            auto end = m_orders.end();
+            const auto end = m_orders.end();
 
             for (; it != end; ++it)
             {
@@ -191,43 +191,49 @@ namespace sadhbhcraft::orderbook
             PriceLevelCompare<MySide> price_compare;
 
             auto it = m_levels.begin();
+            const auto end = m_levels.end();
             
-            if (price_compare(*it, order))
+            // Loop will skip empty side, and call to price_compare() in first
+            // iteration will effectively skip all matching if order doesn't
+            // cross the book. Loop ends when either aggressor's order quantity
+            // is fulfilled, or price limit has been reached.
+            for (; it != end; ++it)
             {
-                for (; it != m_levels.end(); ++it)
+                if (quantity_of(order) == quantity_filled)
+                { 
+                    // Order was fully filled. All aggressor's order quantity
+                    // has been matched
+                    break;
+                }
+                else if (price_compare(order, *it))
                 {
-                    if (quantity_of(order) == quantity_filled)
-                    {
-                        break; //< Order was fully filled
-                    }
-                    else if (price_compare(order, *it))
-                    {
-                        break; //< Order was partially filled
-                    }
-
-                    auto res = it->match_order(
-                        order,
-                        quantity_of(order) - quantity_filled,
-                        std::forward<ExecutionPolicy>(execution_policy));
-
-                    while (res)
-                    {
-                        auto executed = res();
-                        co_yield executed;
-                        quantity_filled += executed.quantity;
-                    }
-
-                    if (!it->empty())
-                    {
-                        // Level wasn't fully filled
-                        break;
-                    }
+                    // Order was partially filled. Price limit reached or order
+                    // didn't cross the book
+                    break;
                 }
 
-                // Remove all levels that were fully filled, but keep the one
-                // that still has quantity left
-                m_levels.erase(m_levels.begin(), it);
+                auto res = it->match_order(
+                    order,
+                    quantity_of(order) - quantity_filled,
+                    std::forward<ExecutionPolicy>(execution_policy));
+
+                while (res)
+                {
+                    auto executed = res();
+                    co_yield executed;
+                    quantity_filled += executed.quantity;
+                }
+
+                if (!it->empty())
+                {
+                    // Level wasn't fully filled
+                    break;
+                }
             }
+
+            // Remove all levels that were fully filled, but keep the one
+            // that still has quantity left
+            m_levels.erase(m_levels.begin(), it);
 
             co_return;
         }
