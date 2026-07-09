@@ -5,6 +5,7 @@
 
 #include <vector>
 #include <iostream>
+#include <functional>
 
 
 template<typename T>
@@ -26,9 +27,7 @@ public:
     OrderSizeLimit(int max_order_size): max_order_size_(max_order_size)
     {}
 
-    template<typename T>
-    requires std::is_same_v<std::remove_cvref_t<T>, OrderQuantity>
-    void operator ()(T &&oq)
+    void operator ()(OrderQuantity &oq)
     {
         if (oq.quantity > max_order_size_)
         {
@@ -45,13 +44,13 @@ struct Level
     std::vector<OrderQuantity> queue;
 
     template<typename ExecutionPolicy = AsyncNoop>
-    Generator<OrderQuantity> match(int quantity, ExecutionPolicy &&ep = {})
+    Generator<OrderQuantity> match(int quantity, ExecutionPolicy &&ep)
     {
         const auto begin = queue.begin();
         const auto end = queue.end();
         auto iter = begin;
         
-        for (begin; iter != end; ++iter)
+        for (; iter != end; ++iter)
         {
             if (!quantity)
             {
@@ -64,7 +63,7 @@ struct Level
                     .order = iter->order, 
                     .quantity = quantity
                 };
-                co_await ep(oq);
+                co_await ep(std::ref(oq));
                 iter->quantity -= oq.quantity;
                 quantity -= oq.quantity;
                 co_yield oq;
@@ -76,7 +75,7 @@ struct Level
                     .order = iter->order, 
                     .quantity = iter->quantity
                 };
-                co_await ep(oq);
+                co_await ep(std::ref(oq));
                 quantity -= oq.quantity;
                 iter->quantity = 0; // remainder is cancelled
                 co_yield oq;
@@ -133,7 +132,7 @@ void main1()
         std::cout << oq.order << ", " << oq.quantity << std::endl;
     }
     
-    auto results = level.match(12);
+    auto results = level.match(12, {});
     auto error = false;
 
     std::cout << "Executions" << std::endl;
