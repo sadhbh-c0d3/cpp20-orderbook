@@ -5,6 +5,5 @@
 
 namespace sadhbhcraft::orderbook
 {
-
 } // end of namespace sadhbhcraft::orderbook
 #endif // INCLUDED_LIB_HPP

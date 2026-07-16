@@ -1,6 +1,7 @@
 #include "lib.hpp"
 
 #include <iostream>
+#include <sstream>
 
 
 namespace scob = sadhbhcraft::orderbook;

@@ -3,6 +3,7 @@
 #include "util/async.hpp"
 #include "util/generator.hpp"
 
+#include <functional>
 #include <vector>
 #include <iostream>
 #include <functional>
@@ -20,6 +21,7 @@ struct OrderQuantity
     int order;
     int quantity;
 };
+
 
 class OrderSizeLimit
 {
